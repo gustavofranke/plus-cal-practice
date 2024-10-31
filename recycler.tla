@@ -18,7 +18,29 @@ variables
 begin
 skip;    
 end algorithm; *)
+\* BEGIN TRANSLATION (chksum(pcal) = "33dbf480" /\ chksum(tla) = "af3d9146")
+VARIABLE pc
+
+vars == << pc >>
+
+Init == /\ pc = "Lbl_1"
+
+Lbl_1 == /\ pc = "Lbl_1"
+         /\ TRUE
+         /\ pc' = "Done"
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == pc = "Done" /\ UNCHANGED vars
+
+Next == Lbl_1
+           \/ Terminating
+
+Spec == Init /\ [][Next]_vars
+
+Termination == <>(pc = "Done")
+
+\* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 11:42:28 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 11:42:49 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
