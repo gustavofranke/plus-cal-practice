@@ -6,7 +6,7 @@ variables
     acc = [p \in people |-> 5],
     sender = "alice",
     receiver = "bob",
-    amount = 3;
+    amount \in 1..6;
 define 
     NoOverdrafts == \A p \in people: acc[p] >= 0
 end define;
@@ -16,7 +16,7 @@ begin
     Deposit:
         acc[receiver] := acc[receiver] + amount
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "ed73f16c" /\ chksum(tla) = "f067a8a0")
+\* BEGIN TRANSLATION (chksum(pcal) = "3730e780" /\ chksum(tla) = "b24e463b")
 VARIABLES people, acc, sender, receiver, amount, pc
 
 (* define statement *)
@@ -30,7 +30,7 @@ Init == (* Global variables *)
         /\ acc = [p \in people |-> 5]
         /\ sender = "alice"
         /\ receiver = "bob"
-        /\ amount = 3
+        /\ amount \in 1..6
         /\ pc = "Withdraw"
 
 Withdraw == /\ pc = "Withdraw"
@@ -56,5 +56,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 09:10:43 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 09:27:29 GMT 2024 by frankeg
 \* Created Thu Oct 31 08:50:01 GMT 2024 by frankeg
