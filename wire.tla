@@ -22,11 +22,12 @@ begin
         end if;
 end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "c4d5e088" /\ chksum(tla) = "8c3a95ed")
+\* BEGIN TRANSLATION (chksum(pcal) = "1cf0c5b2" /\ chksum(tla) = "9b2bfebc")
 VARIABLES people, acc, pc
 
 (* define statement *)
 NoOverdrafts == \A p \in people: acc[p] >= 0
+EventuallyConsistent == <>[](acc["alice"] + acc["bob"] = 10)
 
 VARIABLES sender, receiver, amount
 
@@ -72,5 +73,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 09:50:34 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 11:10:39 GMT 2024 by frankeg
 \* Created Thu Oct 31 08:50:01 GMT 2024 by frankeg
