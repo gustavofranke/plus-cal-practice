@@ -6,6 +6,7 @@ variables
     acc = [p \in people |-> 5];
 define
     NoOverdrafts == \A p \in people: acc[p] >= 0
+    EventuallyConsistent == <>[](acc["alice"] + acc["bob"] = 10)
 end define;
 process Wire \in 1..2
     variables
@@ -71,5 +72,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 09:44:43 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 09:50:34 GMT 2024 by frankeg
 \* Created Thu Oct 31 08:50:01 GMT 2024 by frankeg
