@@ -25,25 +25,26 @@ variables
         [type |-> "recycle", size |-> 3]
     >>,
     curr = ""; \* helper: current item
+macro add_item(type) begin
+    bins[type] := bins[type] \union {curr};
+    capacity[type] := capacity[type] - curr.size;
+    count[type] := count[type] + 1;
+end macro;
 begin
     while items /= <<>> do
         curr := Head(items);
         items := Tail(items);
         if curr.type = "recycle" /\ curr.size < capacity.recycle then
-            bins.recycle := bins.recycle \union {curr};
-            capacity.recycle := capacity.recycle - curr.size;
-            count.recycle := count.recycle + 1;
+            add_item("recycle");
         elsif curr.size < capacity.trash then
-            bins.trash := bins.trash \union {curr};
-            capacity.trash := capacity.trash - curr.size;
-            count.trash := count.trash + 1;
+            add_item("trash");
         end if;    
     end while;  
     assert capacity.trash >= 0 /\ capacity.recycle >= 0;
     assert Cardinality(bins.trash) = count.trash;
     assert Cardinality(bins.recycle) = count.recycle;      
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "a527c56a" /\ chksum(tla) = "d478c245")
+\* BEGIN TRANSLATION (chksum(pcal) = "8f98d9a4" /\ chksum(tla) = "884782e0")
 VARIABLES capacity, bins, count, items, curr, pc
 
 vars == << capacity, bins, count, items, curr, pc >>
@@ -66,23 +67,23 @@ Lbl_1 == /\ pc = "Lbl_1"
                THEN /\ curr' = Head(items)
                     /\ items' = Tail(items)
                     /\ IF curr'.type = "recycle" /\ curr'.size < capacity.recycle
-                          THEN /\ bins' = [bins EXCEPT !.recycle = bins.recycle \union {curr'}]
-                               /\ capacity' = [capacity EXCEPT !.recycle = capacity.recycle - curr'.size]
-                               /\ count' = [count EXCEPT !.recycle = count.recycle + 1]
+                          THEN /\ bins' = [bins EXCEPT !["recycle"] = bins["recycle"] \union {curr'}]
+                               /\ capacity' = [capacity EXCEPT !["recycle"] = capacity["recycle"] - curr'.size]
+                               /\ count' = [count EXCEPT !["recycle"] = count["recycle"] + 1]
                           ELSE /\ IF curr'.size < capacity.trash
-                                     THEN /\ bins' = [bins EXCEPT !.trash = bins.trash \union {curr'}]
-                                          /\ capacity' = [capacity EXCEPT !.trash = capacity.trash - curr'.size]
-                                          /\ count' = [count EXCEPT !.trash = count.trash + 1]
+                                     THEN /\ bins' = [bins EXCEPT !["trash"] = bins["trash"] \union {curr'}]
+                                          /\ capacity' = [capacity EXCEPT !["trash"] = capacity["trash"] - curr'.size]
+                                          /\ count' = [count EXCEPT !["trash"] = count["trash"] + 1]
                                      ELSE /\ TRUE
                                           /\ UNCHANGED << capacity, bins, 
                                                           count >>
                     /\ pc' = "Lbl_1"
                ELSE /\ Assert(capacity.trash >= 0 /\ capacity.recycle >= 0, 
-                              "Failure of assertion at line 42, column 5.")
-                    /\ Assert(Cardinality(bins.trash) = count.trash, 
                               "Failure of assertion at line 43, column 5.")
-                    /\ Assert(Cardinality(bins.recycle) = count.recycle, 
+                    /\ Assert(Cardinality(bins.trash) = count.trash, 
                               "Failure of assertion at line 44, column 5.")
+                    /\ Assert(Cardinality(bins.recycle) = count.recycle, 
+                              "Failure of assertion at line 45, column 5.")
                     /\ pc' = "Done"
                     /\ UNCHANGED << capacity, bins, count, items, curr >>
 
@@ -99,5 +100,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 11:44:37 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 11:50:21 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
