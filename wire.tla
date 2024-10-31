@@ -11,9 +11,12 @@ define
     NoOverdrafts == \A p \in people: acc[p] >= 0
 end define;
 begin
-skip;
+    Withdraw:
+        acc[sender] := acc[sender] - amount;
+    Deposit:
+        acc[receiver] := acc[receiver] + amount
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "837e18bd" /\ chksum(tla) = "dc417d61")
+\* BEGIN TRANSLATION (chksum(pcal) = "ed73f16c" /\ chksum(tla) = "f067a8a0")
 VARIABLES people, acc, sender, receiver, amount, pc
 
 (* define statement *)
@@ -28,17 +31,22 @@ Init == (* Global variables *)
         /\ sender = "alice"
         /\ receiver = "bob"
         /\ amount = 3
-        /\ pc = "Lbl_1"
+        /\ pc = "Withdraw"
 
-Lbl_1 == /\ pc = "Lbl_1"
-         /\ TRUE
-         /\ pc' = "Done"
-         /\ UNCHANGED << people, acc, sender, receiver, amount >>
+Withdraw == /\ pc = "Withdraw"
+            /\ acc' = [acc EXCEPT ![sender] = acc[sender] - amount]
+            /\ pc' = "Deposit"
+            /\ UNCHANGED << people, sender, receiver, amount >>
+
+Deposit == /\ pc = "Deposit"
+           /\ acc' = [acc EXCEPT ![receiver] = acc[receiver] + amount]
+           /\ pc' = "Done"
+           /\ UNCHANGED << people, sender, receiver, amount >>
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == pc = "Done" /\ UNCHANGED vars
 
-Next == Lbl_1
+Next == Withdraw \/ Deposit
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
@@ -48,5 +56,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 09:08:13 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 09:10:43 GMT 2024 by frankeg
 \* Created Thu Oct 31 08:50:01 GMT 2024 by frankeg
