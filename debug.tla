@@ -1,5 +1,5 @@
 ------------------------------- MODULE debug -------------------------------
-EXTENDS Integers, FiniteSets, Sequences
+EXTENDS Integers, FiniteSets, Sequences, TLC
 E0 == 1 + 2
 
 E1 == 1 = 2
@@ -106,7 +106,35 @@ PT == INSTANCE PT
 SumUpTo2(n) ==
     PT!ReduceSet(LAMBDA x, y: x + y, 0..n, 0)
 E49 == SumUpTo2(10)
+
+\* domain
+F[x \in BOOLEAN] == x
+G == <<6, 0, 9>>
+H == [F |-> DOMAIN F, G |-> DOMAIN G]
+E50 == H
+E51 == DOMAIN H
+
+\* f @@ g merges two function
+Merge(f, g) == [
+    x \in (DOMAIN f) \union (DOMAIN g) |-> IF x \in DOMAIN f THEN f[x] ELSE g[x]
+    ]
+f[x \in 1..2] == "a"
+g[x \in 2..3] == "b"
+E52 == f @@ g
+E53 == g @@ f
+
+\* a :> b is the function [x \in {a} |-> b]
+E54 == (2  :> 3)[2]
+E55 == ("a" :> "b").a
+
+\* Sets of Functions
+\*[set1 -> set2] is the set of all functions that map elements of set1 to elements of set2.
+E56 == [s \in {"a", "b"} |-> {1, 2}]
+E57 == [{"a", "b"} -> {1, 2}]
+
+SeqOf(set, count) == [1..count -> set]
+E58 == SeqOf({"a", "b", "c"}, 2)
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 22:11:46 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 22:30:11 GMT 2024 by frankeg
 \* Created Thu Oct 31 16:54:07 GMT 2024 by frankeg
