@@ -12,7 +12,13 @@
 (*    AND there is sufficient capacity in the trash bin, the item goes into trash. *)
 (* 3. Otherwise, it’s dropped on the floor and somebody else gets to sweep it up.  *)
 (***********************************************************************************)
+EXTENDS Integers
+(*--algorithm recycler
+variables
+begin
+skip;    
+end algorithm; *)
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 11:26:56 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 11:42:28 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
