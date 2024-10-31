@@ -38,9 +38,12 @@ begin
             capacity.trash := capacity.trash - curr.size;
             count.trash := count.trash + 1;
         end if;    
-    end while;       
+    end while;  
+    assert capacity.trash >= 0 /\ capacity.recycle >= 0;
+    assert Cardinality(bins.trash) = count.trash;
+    assert Cardinality(bins.recycle) = count.recycle;      
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "d54701ce" /\ chksum(tla) = "4ee2ed74")
+\* BEGIN TRANSLATION (chksum(pcal) = "a527c56a" /\ chksum(tla) = "d478c245")
 VARIABLES capacity, bins, count, items, curr, pc
 
 vars == << capacity, bins, count, items, curr, pc >>
@@ -74,7 +77,13 @@ Lbl_1 == /\ pc = "Lbl_1"
                                           /\ UNCHANGED << capacity, bins, 
                                                           count >>
                     /\ pc' = "Lbl_1"
-               ELSE /\ pc' = "Done"
+               ELSE /\ Assert(capacity.trash >= 0 /\ capacity.recycle >= 0, 
+                              "Failure of assertion at line 42, column 5.")
+                    /\ Assert(Cardinality(bins.trash) = count.trash, 
+                              "Failure of assertion at line 43, column 5.")
+                    /\ Assert(Cardinality(bins.recycle) = count.recycle, 
+                              "Failure of assertion at line 44, column 5.")
+                    /\ pc' = "Done"
                     /\ UNCHANGED << capacity, bins, count, items, curr >>
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
@@ -90,5 +99,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 11:43:50 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 11:44:37 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
