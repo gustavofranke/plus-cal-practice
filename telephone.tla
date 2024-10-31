@@ -36,8 +36,9 @@ begin
             skip;
         end either;
     end while;
+    assert received = <<1, 2, 3>>;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "6eabffa0" /\ chksum(tla) = "59bc4f3a")
+\* BEGIN TRANSLATION (chksum(pcal) = "191d8cf7" /\ chksum(tla) = "2376b553")
 VARIABLES to_send, received, in_transit, pc
 
 vars == << to_send, received, in_transit, pc >>
@@ -58,7 +59,9 @@ Lbl_1 == /\ pc = "Lbl_1"
                     /\ \/ /\ pc' = "Lbl_2"
                        \/ /\ TRUE
                           /\ pc' = "Lbl_1"
-               ELSE /\ pc' = "Done"
+               ELSE /\ Assert(received = <<1, 2, 3>>, 
+                              "Failure of assertion at line 39, column 5.")
+                    /\ pc' = "Done"
                     /\ UNCHANGED << to_send, in_transit >>
          /\ UNCHANGED received
 
@@ -82,5 +85,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 12:33:24 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 12:35:08 GMT 2024 by frankeg
 \* Created Thu Oct 31 12:13:35 GMT 2024 by frankeg
