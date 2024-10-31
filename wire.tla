@@ -3,58 +3,68 @@ EXTENDS Integers
 (*--algorithm wire
 variables
     people = {"alice", "bob"},
-    acc = [p \in people |-> 5],
-    sender = "alice",
-    receiver = "bob",
-    amount \in 1..6;
+    acc = [p \in people |-> 5];
 define 
     NoOverdrafts == \A p \in people: acc[p] >= 0
 end define;
+process Wire \in 1..2
+    variables
+        sender = "alice",
+        receiver = "bob",
+        amount \in 1..acc[sender];
 begin
     Withdraw:
         acc[sender] := acc[sender] - amount;
     Deposit:
         acc[receiver] := acc[receiver] + amount
+end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "3730e780" /\ chksum(tla) = "b24e463b")
-VARIABLES people, acc, sender, receiver, amount, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "394af3d1" /\ chksum(tla) = "8870c481")
+VARIABLES people, acc, pc
 
 (* define statement *)
 NoOverdrafts == \A p \in people: acc[p] >= 0
 
+VARIABLES sender, receiver, amount
 
-vars == << people, acc, sender, receiver, amount, pc >>
+vars == << people, acc, pc, sender, receiver, amount >>
+
+ProcSet == (1..2)
 
 Init == (* Global variables *)
         /\ people = {"alice", "bob"}
         /\ acc = [p \in people |-> 5]
-        /\ sender = "alice"
-        /\ receiver = "bob"
-        /\ amount \in 1..6
-        /\ pc = "Withdraw"
+        (* Process Wire *)
+        /\ sender = [self \in 1..2 |-> "alice"]
+        /\ receiver = [self \in 1..2 |-> "bob"]
+        /\ amount \in [1..2 -> 1..acc[sender[CHOOSE self \in  1..2 : TRUE]]]
+        /\ pc = [self \in ProcSet |-> "Withdraw"]
 
-Withdraw == /\ pc = "Withdraw"
-            /\ acc' = [acc EXCEPT ![sender] = acc[sender] - amount]
-            /\ pc' = "Deposit"
-            /\ UNCHANGED << people, sender, receiver, amount >>
+Withdraw(self) == /\ pc[self] = "Withdraw"
+                  /\ acc' = [acc EXCEPT ![sender[self]] = acc[sender[self]] - amount[self]]
+                  /\ pc' = [pc EXCEPT ![self] = "Deposit"]
+                  /\ UNCHANGED << people, sender, receiver, amount >>
 
-Deposit == /\ pc = "Deposit"
-           /\ acc' = [acc EXCEPT ![receiver] = acc[receiver] + amount]
-           /\ pc' = "Done"
-           /\ UNCHANGED << people, sender, receiver, amount >>
+Deposit(self) == /\ pc[self] = "Deposit"
+                 /\ acc' = [acc EXCEPT ![receiver[self]] = acc[receiver[self]] + amount[self]]
+                 /\ pc' = [pc EXCEPT ![self] = "Done"]
+                 /\ UNCHANGED << people, sender, receiver, amount >>
+
+Wire(self) == Withdraw(self) \/ Deposit(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == pc = "Done" /\ UNCHANGED vars
+Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
+               /\ UNCHANGED vars
 
-Next == Withdraw \/ Deposit
+Next == (\E self \in 1..2: Wire(self))
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-Termination == <>(pc = "Done")
+Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 09:27:29 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 09:32:11 GMT 2024 by frankeg
 \* Created Thu Oct 31 08:50:01 GMT 2024 by frankeg
