@@ -33,7 +33,11 @@ begin
             with msg \in in_transit do
                 received := Append(received, msg);
                 in_transit := in_transit \ {msg};
-                can_send := TRUE;
+                either
+                    can_send := TRUE;
+                or
+                    skip;
+                end either;
             end with;
         or
             skip;
@@ -41,7 +45,7 @@ begin
     end while;
     assert received = <<1, 2, 3>>;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "bbfc54a" /\ chksum(tla) = "67295b97")
+\* BEGIN TRANSLATION (chksum(pcal) = "f7ae0df" /\ chksum(tla) = "fdf67b65")
 VARIABLES to_send, received, in_transit, can_send, pc
 
 vars == << to_send, received, in_transit, can_send, pc >>
@@ -65,7 +69,7 @@ Lbl_1 == /\ pc = "Lbl_1"
                        \/ /\ TRUE
                           /\ pc' = "Lbl_1"
                ELSE /\ Assert(received = <<1, 2, 3>>, 
-                              "Failure of assertion at line 42, column 5.")
+                              "Failure of assertion at line 46, column 5.")
                     /\ pc' = "Done"
                     /\ UNCHANGED << to_send, in_transit, can_send >>
          /\ UNCHANGED received
@@ -74,7 +78,9 @@ Lbl_2 == /\ pc = "Lbl_2"
          /\ \E msg \in in_transit:
               /\ received' = Append(received, msg)
               /\ in_transit' = in_transit \ {msg}
-              /\ can_send' = TRUE
+              /\ \/ /\ can_send' = TRUE
+                 \/ /\ TRUE
+                    /\ UNCHANGED can_send
          /\ pc' = "Lbl_1"
          /\ UNCHANGED to_send
 
@@ -91,5 +97,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 13:55:35 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 13:57:43 GMT 2024 by frankeg
 \* Created Thu Oct 31 12:13:35 GMT 2024 by frankeg
