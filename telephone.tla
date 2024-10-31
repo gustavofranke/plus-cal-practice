@@ -15,19 +15,27 @@
 (**********************************************************************************)
 (*---algorithm telephone
 variables
+    to_send = <<1, 2, 3>>,
+    received = <<>>,
+    in_transit = {};
 begin
 skip;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "7c763995" /\ chksum(tla) = "af3d9146")
-VARIABLE pc
+\* BEGIN TRANSLATION (chksum(pcal) = "1b6afa5a" /\ chksum(tla) = "28207900")
+VARIABLES to_send, received, in_transit, pc
 
-vars == << pc >>
+vars == << to_send, received, in_transit, pc >>
 
-Init == /\ pc = "Lbl_1"
+Init == (* Global variables *)
+        /\ to_send = <<1, 2, 3>>
+        /\ received = <<>>
+        /\ in_transit = {}
+        /\ pc = "Lbl_1"
 
 Lbl_1 == /\ pc = "Lbl_1"
          /\ TRUE
          /\ pc' = "Done"
+         /\ UNCHANGED << to_send, received, in_transit >>
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == pc = "Done" /\ UNCHANGED vars
@@ -42,5 +50,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 12:22:56 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 12:24:12 GMT 2024 by frankeg
 \* Created Thu Oct 31 12:13:35 GMT 2024 by frankeg
