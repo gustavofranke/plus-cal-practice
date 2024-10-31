@@ -24,8 +24,11 @@ variables
     items \in SetsOfFour(Items),
     curr = ""; \* helper: current item
 define
-    NoBinOverflow == capacity.trash >= 0 /\ capacity.recycle >= 0
-    CountsMatchUp == Len(bins.trash) = count.trash /\ Len(bins.recycle) = count.recycle
+    Invariant ==
+        /\ capacity.trash >= 0
+        /\ capacity.recycle >= 0
+        /\ Len(bins.trash) = count.trash
+        /\ Len(bins.recycle) = count.recycle
 end define;
 macro add_item(type) begin
     bins[type] := Append(bins[type], curr);
@@ -44,15 +47,17 @@ begin
     end while;  
     assert capacity.trash >= 0 /\ capacity.recycle >= 0;
     assert Len(bins.trash) = count.trash;
-    assert Len(bins.recycle) = count.recycle;    
-    assert NoBinOverflow /\ CountsMatchUp;  
+    assert Len(bins.recycle) = count.recycle;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "edafacf9" /\ chksum(tla) = "6639ceb8")
+\* BEGIN TRANSLATION (chksum(pcal) = "69ffe89d" /\ chksum(tla) = "3fa3cb5d")
 VARIABLES capacity, bins, count, items, curr, pc
 
 (* define statement *)
-NoBinOverflow == capacity.trash >= 0 /\ capacity.recycle >= 0
-CountsMatchUp == Len(bins.trash) = count.trash /\ Len(bins.recycle) = count.recycle
+Invariant ==
+    /\ capacity.trash >= 0
+    /\ capacity.recycle >= 0
+    /\ Len(bins.trash) = count.trash
+    /\ Len(bins.recycle) = count.recycle
 
 
 vars == << capacity, bins, count, items, curr, pc >>
@@ -82,13 +87,11 @@ Lbl_1 == /\ pc = "Lbl_1"
                                                           count >>
                     /\ pc' = "Lbl_1"
                ELSE /\ Assert(capacity.trash >= 0 /\ capacity.recycle >= 0, 
-                              "Failure of assertion at line 45, column 5.")
-                    /\ Assert(Len(bins.trash) = count.trash, 
-                              "Failure of assertion at line 46, column 5.")
-                    /\ Assert(Len(bins.recycle) = count.recycle, 
-                              "Failure of assertion at line 47, column 5.")
-                    /\ Assert(NoBinOverflow /\ CountsMatchUp, 
                               "Failure of assertion at line 48, column 5.")
+                    /\ Assert(Len(bins.trash) = count.trash, 
+                              "Failure of assertion at line 49, column 5.")
+                    /\ Assert(Len(bins.recycle) = count.recycle, 
+                              "Failure of assertion at line 50, column 5.")
                     /\ pc' = "Done"
                     /\ UNCHANGED << capacity, bins, count, items, curr >>
 
@@ -105,5 +108,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 15:02:22 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 15:10:34 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
