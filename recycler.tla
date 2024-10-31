@@ -15,15 +15,11 @@
 EXTENDS Sequences, Integers, TLC, FiniteSets
 (*--algorithm recycler
 variables
-    capacity = [trash |-> 10, recycle |-> 10],
+    capacity \in [trash: 1..10, recycle: 1..10],
     bins = [trash |-> {}, recycle |-> {}],
     count = [trash |-> 0, recycle |-> 0],
-    items = <<
-        [type |-> "recycle", size |-> 5],
-        [type |-> "trash", size |-> 5],
-        [type |-> "recycle", size |-> 4],
-        [type |-> "recycle", size |-> 3]
-    >>,
+    item = [type: {"trash", "recycle"}, size: 1..6],
+    items \in item \X item \X item \X item,
     curr = ""; \* helper: current item
 macro add_item(type) begin
     bins[type] := bins[type] \union {curr};
@@ -44,21 +40,17 @@ begin
     assert Cardinality(bins.trash) = count.trash;
     assert Cardinality(bins.recycle) = count.recycle;      
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8f98d9a4" /\ chksum(tla) = "884782e0")
-VARIABLES capacity, bins, count, items, curr, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "dd133a46" /\ chksum(tla) = "9eb86b2b")
+VARIABLES capacity, bins, count, item, items, curr, pc
 
-vars == << capacity, bins, count, items, curr, pc >>
+vars == << capacity, bins, count, item, items, curr, pc >>
 
 Init == (* Global variables *)
-        /\ capacity = [trash |-> 10, recycle |-> 10]
+        /\ capacity \in [trash: 1..10, recycle: 1..10]
         /\ bins = [trash |-> {}, recycle |-> {}]
         /\ count = [trash |-> 0, recycle |-> 0]
-        /\ items =         <<
-                       [type |-> "recycle", size |-> 5],
-                       [type |-> "trash", size |-> 5],
-                       [type |-> "recycle", size |-> 4],
-                       [type |-> "recycle", size |-> 3]
-                   >>
+        /\ item = [type: {"trash", "recycle"}, size: 1..6]
+        /\ items \in item \X item \X item \X item
         /\ curr = ""
         /\ pc = "Lbl_1"
 
@@ -79,13 +71,14 @@ Lbl_1 == /\ pc = "Lbl_1"
                                                           count >>
                     /\ pc' = "Lbl_1"
                ELSE /\ Assert(capacity.trash >= 0 /\ capacity.recycle >= 0, 
-                              "Failure of assertion at line 43, column 5.")
+                              "Failure of assertion at line 39, column 5.")
                     /\ Assert(Cardinality(bins.trash) = count.trash, 
-                              "Failure of assertion at line 44, column 5.")
+                              "Failure of assertion at line 40, column 5.")
                     /\ Assert(Cardinality(bins.recycle) = count.recycle, 
-                              "Failure of assertion at line 45, column 5.")
+                              "Failure of assertion at line 41, column 5.")
                     /\ pc' = "Done"
                     /\ UNCHANGED << capacity, bins, count, items, curr >>
+         /\ item' = item
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == pc = "Done" /\ UNCHANGED vars
@@ -100,5 +93,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 11:50:21 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 11:55:09 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
