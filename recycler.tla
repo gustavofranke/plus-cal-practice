@@ -16,13 +16,13 @@ EXTENDS Sequences, Integers, TLC, FiniteSets
 (*--algorithm recycler
 variables
     capacity \in [trash: 1..10, recycle: 1..10],
-    bins = [trash |-> {}, recycle |-> {}],
+    bins = [trash |-> <<>>, recycle |-> <<>>],
     count = [trash |-> 0, recycle |-> 0],
     item = [type: {"trash", "recycle"}, size: 1..6],
     items \in item \X item \X item \X item,
     curr = ""; \* helper: current item
 macro add_item(type) begin
-    bins[type] := bins[type] \union {curr};
+    bins[type] := Append(bins[type], curr);
     capacity[type] := capacity[type] - curr.size;
     count[type] := count[type] + 1;
 end macro;
@@ -37,17 +37,17 @@ begin
         end if;    
     end while;  
     assert capacity.trash >= 0 /\ capacity.recycle >= 0;
-    assert Cardinality(bins.trash) = count.trash;
-    assert Cardinality(bins.recycle) = count.recycle;      
+    assert Len(bins.trash) = count.trash;
+    assert Len(bins.recycle) = count.recycle;      
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "dd133a46" /\ chksum(tla) = "9eb86b2b")
+\* BEGIN TRANSLATION (chksum(pcal) = "1efeb7af" /\ chksum(tla) = "f635fb90")
 VARIABLES capacity, bins, count, item, items, curr, pc
 
 vars == << capacity, bins, count, item, items, curr, pc >>
 
 Init == (* Global variables *)
         /\ capacity \in [trash: 1..10, recycle: 1..10]
-        /\ bins = [trash |-> {}, recycle |-> {}]
+        /\ bins = [trash |-> <<>>, recycle |-> <<>>]
         /\ count = [trash |-> 0, recycle |-> 0]
         /\ item = [type: {"trash", "recycle"}, size: 1..6]
         /\ items \in item \X item \X item \X item
@@ -59,11 +59,11 @@ Lbl_1 == /\ pc = "Lbl_1"
                THEN /\ curr' = Head(items)
                     /\ items' = Tail(items)
                     /\ IF curr'.type = "recycle" /\ curr'.size < capacity.recycle
-                          THEN /\ bins' = [bins EXCEPT !["recycle"] = bins["recycle"] \union {curr'}]
+                          THEN /\ bins' = [bins EXCEPT !["recycle"] = Append(bins["recycle"], curr')]
                                /\ capacity' = [capacity EXCEPT !["recycle"] = capacity["recycle"] - curr'.size]
                                /\ count' = [count EXCEPT !["recycle"] = count["recycle"] + 1]
                           ELSE /\ IF curr'.size < capacity.trash
-                                     THEN /\ bins' = [bins EXCEPT !["trash"] = bins["trash"] \union {curr'}]
+                                     THEN /\ bins' = [bins EXCEPT !["trash"] = Append(bins["trash"], curr')]
                                           /\ capacity' = [capacity EXCEPT !["trash"] = capacity["trash"] - curr'.size]
                                           /\ count' = [count EXCEPT !["trash"] = count["trash"] + 1]
                                      ELSE /\ TRUE
@@ -72,9 +72,9 @@ Lbl_1 == /\ pc = "Lbl_1"
                     /\ pc' = "Lbl_1"
                ELSE /\ Assert(capacity.trash >= 0 /\ capacity.recycle >= 0, 
                               "Failure of assertion at line 39, column 5.")
-                    /\ Assert(Cardinality(bins.trash) = count.trash, 
+                    /\ Assert(Len(bins.trash) = count.trash, 
                               "Failure of assertion at line 40, column 5.")
-                    /\ Assert(Cardinality(bins.recycle) = count.recycle, 
+                    /\ Assert(Len(bins.recycle) = count.recycle, 
                               "Failure of assertion at line 41, column 5.")
                     /\ pc' = "Done"
                     /\ UNCHANGED << capacity, bins, count, items, curr >>
@@ -93,5 +93,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 11:55:09 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 12:07:53 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
