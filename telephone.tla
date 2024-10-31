@@ -13,7 +13,34 @@
 (* This means we have two sequences for to_send and received,                     *)
 (* but a set for in_transit.                                                      *)
 (**********************************************************************************)
+(*---algorithm telephone
+variables
+begin
+skip;
+end algorithm; *)
+\* BEGIN TRANSLATION (chksum(pcal) = "7c763995" /\ chksum(tla) = "af3d9146")
+VARIABLE pc
+
+vars == << pc >>
+
+Init == /\ pc = "Lbl_1"
+
+Lbl_1 == /\ pc = "Lbl_1"
+         /\ TRUE
+         /\ pc' = "Done"
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == pc = "Done" /\ UNCHANGED vars
+
+Next == Lbl_1
+           \/ Terminating
+
+Spec == Init /\ [][Next]_vars
+
+Termination == <>(pc = "Done")
+
+\* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 12:21:52 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 12:22:56 GMT 2024 by frankeg
 \* Created Thu Oct 31 12:13:35 GMT 2024 by frankeg
