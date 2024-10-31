@@ -13,14 +13,20 @@
 (* 3. Otherwise, it’s dropped on the floor and somebody else gets to sweep it up.  *)
 (***********************************************************************************)
 EXTENDS Sequences, Integers, TLC, FiniteSets
+BinTypes == {"trash", "recycle"}
+SetsOfFour(set) == set \X set \X set \X set
+Items == [type: BinTypes, size: 1..6]
 (*--algorithm recycler
 variables
     capacity \in [trash: 1..10, recycle: 1..10],
     bins = [trash |-> <<>>, recycle |-> <<>>],
     count = [trash |-> 0, recycle |-> 0],
-    item = [type: {"trash", "recycle"}, size: 1..6],
-    items \in item \X item \X item \X item,
+    items \in SetsOfFour(Items),
     curr = ""; \* helper: current item
+define
+    NoBinOverflow == capacity.trash >= 0 /\ capacity.recycle >= 0
+    CountsMatchUp == Len(bins.trash) = count.trash /\ Len(bins.recycle) = count.recycle
+end define;
 macro add_item(type) begin
     bins[type] := Append(bins[type], curr);
     capacity[type] := capacity[type] - curr.size;
@@ -38,19 +44,24 @@ begin
     end while;  
     assert capacity.trash >= 0 /\ capacity.recycle >= 0;
     assert Len(bins.trash) = count.trash;
-    assert Len(bins.recycle) = count.recycle;      
+    assert Len(bins.recycle) = count.recycle;    
+    assert NoBinOverflow /\ CountsMatchUp;  
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1efeb7af" /\ chksum(tla) = "f635fb90")
-VARIABLES capacity, bins, count, item, items, curr, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "edafacf9" /\ chksum(tla) = "6639ceb8")
+VARIABLES capacity, bins, count, items, curr, pc
 
-vars == << capacity, bins, count, item, items, curr, pc >>
+(* define statement *)
+NoBinOverflow == capacity.trash >= 0 /\ capacity.recycle >= 0
+CountsMatchUp == Len(bins.trash) = count.trash /\ Len(bins.recycle) = count.recycle
+
+
+vars == << capacity, bins, count, items, curr, pc >>
 
 Init == (* Global variables *)
         /\ capacity \in [trash: 1..10, recycle: 1..10]
         /\ bins = [trash |-> <<>>, recycle |-> <<>>]
         /\ count = [trash |-> 0, recycle |-> 0]
-        /\ item = [type: {"trash", "recycle"}, size: 1..6]
-        /\ items \in item \X item \X item \X item
+        /\ items \in SetsOfFour(Items)
         /\ curr = ""
         /\ pc = "Lbl_1"
 
@@ -71,14 +82,15 @@ Lbl_1 == /\ pc = "Lbl_1"
                                                           count >>
                     /\ pc' = "Lbl_1"
                ELSE /\ Assert(capacity.trash >= 0 /\ capacity.recycle >= 0, 
-                              "Failure of assertion at line 39, column 5.")
+                              "Failure of assertion at line 45, column 5.")
                     /\ Assert(Len(bins.trash) = count.trash, 
-                              "Failure of assertion at line 40, column 5.")
+                              "Failure of assertion at line 46, column 5.")
                     /\ Assert(Len(bins.recycle) = count.recycle, 
-                              "Failure of assertion at line 41, column 5.")
+                              "Failure of assertion at line 47, column 5.")
+                    /\ Assert(NoBinOverflow /\ CountsMatchUp, 
+                              "Failure of assertion at line 48, column 5.")
                     /\ pc' = "Done"
                     /\ UNCHANGED << capacity, bins, count, items, curr >>
-         /\ item' = item
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == pc = "Done" /\ UNCHANGED vars
@@ -93,5 +105,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 12:07:53 GMT 2024 by frankeg
+\* Last modified Thu Oct 31 15:02:22 GMT 2024 by frankeg
 \* Created Thu Oct 31 11:12:44 GMT 2024 by frankeg
