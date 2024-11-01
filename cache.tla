@@ -7,7 +7,8 @@ ASSUME Actors /= {}
 ASSUME MaxConsumerReq \in 1..ResourceCap
 (*--algorithm cache
 variables
-    resources_left = ResourceCap,
+    resource_cap \in 1..ResourceCap,
+    resources_left = resource_cap,
     ran = [a \in Actors |-> FALSE];
 define
     ResourceInvariant == resources_left >= 0
@@ -34,25 +35,26 @@ end process;
 process time = "time"
 begin
     Tick:
-        resources_left := ResourceCap;
+        resources_left := resource_cap;
         ran := [A \in Actors |-> FALSE];
         goto Tick;
 end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "69da833b" /\ chksum(tla) = "9831ab3b")
-VARIABLES resources_left, ran, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "9dda247e" /\ chksum(tla) = "7af7eadb")
+VARIABLES resource_cap, resources_left, ran, pc
 
 (* define statement *)
 ResourceInvariant == resources_left >= 0
 
 VARIABLE resources_needed
 
-vars == << resources_left, ran, pc, resources_needed >>
+vars == << resource_cap, resources_left, ran, pc, resources_needed >>
 
 ProcSet == (Actors) \cup {"time"}
 
 Init == (* Global variables *)
-        /\ resources_left = ResourceCap
+        /\ resource_cap \in 1..ResourceCap
+        /\ resources_left = resource_cap
         /\ ran = [a \in Actors |-> FALSE]
         (* Process actor *)
         /\ resources_needed \in [Actors -> 1..MaxConsumerReq]
@@ -63,7 +65,7 @@ WaitForResources(self) == /\ pc[self] = "WaitForResources"
                           /\ ~ran[self]
                           /\ resources_left >= resources_needed[self]
                           /\ pc' = [pc EXCEPT ![self] = "UseResources"]
-                          /\ UNCHANGED << resources_left, ran, 
+                          /\ UNCHANGED << resource_cap, resources_left, ran, 
                                           resources_needed >>
 
 UseResources(self) == /\ pc[self] = "UseResources"
@@ -77,14 +79,15 @@ UseResources(self) == /\ pc[self] = "UseResources"
                                  /\ ran' = [ran EXCEPT ![self] = TRUE]
                                  /\ pc' = [pc EXCEPT ![self] = "WaitForResources"]
                                  /\ UNCHANGED resources_left
+                      /\ UNCHANGED resource_cap
 
 actor(self) == WaitForResources(self) \/ UseResources(self)
 
 Tick == /\ pc["time"] = "Tick"
-        /\ resources_left' = ResourceCap
+        /\ resources_left' = resource_cap
         /\ ran' = [A \in Actors |-> FALSE]
         /\ pc' = [pc EXCEPT !["time"] = "Tick"]
-        /\ UNCHANGED resources_needed
+        /\ UNCHANGED << resource_cap, resources_needed >>
 
 time == Tick
 
@@ -96,5 +99,5 @@ Spec == Init /\ [][Next]_vars
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 20:09:53 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 21:19:54 GMT 2024 by frankeg
 \* Created Fri Nov 01 16:11:59 GMT 2024 by frankeg
