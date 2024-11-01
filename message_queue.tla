@@ -1,31 +1,32 @@
 --------------------------- MODULE message_queue ---------------------------
+EXTENDS Sequences
 (*--algorithm message_queue
-begin
-skip;
+variable queue = <<>>;
+process writer = "writer"
+begin Write:
+    while TRUE do
+        queue := Append(queue, "msg");
+    end while;
+end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "faddc595" /\ chksum(tla) = "af3d9146")
-VARIABLE pc
+\* BEGIN TRANSLATION (chksum(pcal) = "1ade2ba" /\ chksum(tla) = "e2665637")
+VARIABLE queue
 
-vars == << pc >>
+vars == << queue >>
 
-Init == /\ pc = "Lbl_1"
+ProcSet == {"writer"}
 
-Lbl_1 == /\ pc = "Lbl_1"
-         /\ TRUE
-         /\ pc' = "Done"
+Init == (* Global variables *)
+        /\ queue = <<>>
 
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == pc = "Done" /\ UNCHANGED vars
+writer == queue' = Append(queue, "msg")
 
-Next == Lbl_1
-           \/ Terminating
+Next == writer
 
 Spec == Init /\ [][Next]_vars
-
-Termination == <>(pc = "Done")
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 15:21:10 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 15:30:05 GMT 2024 by frankeg
 \* Created Fri Nov 01 15:18:56 GMT 2024 by frankeg
