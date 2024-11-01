@@ -134,7 +134,19 @@ E57 == [{"a", "b"} -> {1, 2}]
 
 SeqOf(set, count) == [1..count -> set]
 E58 == SeqOf({"a", "b", "c"}, 2)
+
+E59 == Print(<<"2 + 3 = ", 5>>, <<1>>) \o <<2>>
+
+E60 == Assert(3 < 5, "3 is more than 5")
+E61 == Assert(3 > 5, "3 is more than 5")
+\*The first argument of Assert evaluated to FALSE; the second argument was:
+\*"3 is more than 5"
+
+E62 == Permutations({1, 2, 3})
+E63 == SortSeq(<<1, 2, 3>>, LAMBDA x, y: x > y)
+E64 == CHOOSE seq \in Permutations({1, 2, 3}): TRUE
+
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 31 22:30:11 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 14:23:50 GMT 2024 by frankeg
 \* Created Thu Oct 31 16:54:07 GMT 2024 by frankeg
