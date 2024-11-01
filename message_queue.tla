@@ -1,7 +1,11 @@
 --------------------------- MODULE message_queue ---------------------------
-EXTENDS Sequences
+EXTENDS Integers, Sequences
+CONSTANTS MaxQueueSize
 (*--algorithm message_queue
 variable queue = <<>>;
+define
+    BoundedQueue == Len(queue) <= MaxQueueSize
+end define;
 process writer = "writer"
 begin Write:
     while TRUE do
@@ -17,8 +21,13 @@ begin Read:
     end while;
 end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "a798b384" /\ chksum(tla) = "197f644c")
-VARIABLES queue, current_message
+\* BEGIN TRANSLATION (chksum(pcal) = "c4107529" /\ chksum(tla) = "8c5057a2")
+VARIABLE queue
+
+(* define statement *)
+BoundedQueue == Len(queue) <= MaxQueueSize
+
+VARIABLE current_message
 
 vars == << queue, current_message >>
 
@@ -42,5 +51,5 @@ Spec == Init /\ [][Next]_vars
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 15:31:08 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 15:34:27 GMT 2024 by frankeg
 \* Created Fri Nov 01 15:18:56 GMT 2024 by frankeg
