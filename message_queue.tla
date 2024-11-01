@@ -10,6 +10,7 @@ process writer = "writer"
 begin Write:
     while TRUE do
         queue := Append(queue, "msg");
+        await Len(queue) <= MaxQueueSize;
     end while;
 end process;
 process reader = "reader"
@@ -22,7 +23,7 @@ begin Read:
     end while;
 end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "97f3b76d" /\ chksum(tla) = "1c35dd73")
+\* BEGIN TRANSLATION (chksum(pcal) = "205e8e8c" /\ chksum(tla) = "fc83c0a7")
 VARIABLE queue
 
 (* define statement *)
@@ -40,6 +41,7 @@ Init == (* Global variables *)
         /\ current_message = "none"
 
 writer == /\ queue' = Append(queue, "msg")
+          /\ Len(queue') <= MaxQueueSize
           /\ UNCHANGED current_message
 
 reader == /\ queue /= <<>>
@@ -53,5 +55,5 @@ Spec == Init /\ [][Next]_vars
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 15:38:16 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 15:44:56 GMT 2024 by frankeg
 \* Created Fri Nov 01 15:18:56 GMT 2024 by frankeg
