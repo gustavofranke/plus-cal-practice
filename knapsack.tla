@@ -59,7 +59,7 @@ E3 == KnapsackValue([a |-> 1, b |-> 3, c |-> 0], HardcodedItemSet)
 BestKnapsacksOne(itemset) ==
     LET all == ValidKnapsacks(itemset)
     IN CHOOSE all_the_best \in SUBSET all:
-        \A good \in all_the_best:
+        /\ \E good \in all_the_best:
             /\ \A other \in all_the_best:
                 KnapsackValue(good, itemset) = KnapsackValue(other, itemset)
             /\ \A worse \in all \ all_the_best:
@@ -68,21 +68,29 @@ BestKnapsacksOne(itemset) ==
 \* Pick a best knapsack arbitrarily, calculate its value, and filter for all the other knapsacks that match it.
 BestKnapsacksTwo(itemset) ==
     LET
+        value(sack) == KnapsackValue(sack, itemset)
         all == ValidKnapsacks(itemset)
         best == CHOOSE best \in all:
             \A worse \in all \ {best}:
-                KnapsackValue(best, itemset) >= KnapsackValue(worse, itemset)
+                value(best) >= value(worse)
         value_of_best == KnapsackValue(best, itemset)
     IN
         {k \in all: value_of_best = KnapsackValue(k, itemset)}
-    
+
+E4 == \A is \in ItemSets: BestKnapsacksTwo(is) = BestKnapsacksOne(is)
+E5 == LET is == CHOOSE is \in ItemSets:
+    BestKnapsacksTwo(is) /= BestKnapsacksOne(is)
+    IN <<is, BestKnapsacksOne(is), BestKnapsacksTwo(is)>>
+
+E6 == \A is \in ItemSets: BestKnapsacksTwo(is)
+E7 == \A is \in ItemSets: BestKnapsacksOne(is)
 
 (*--algorithm debug
 variables itemset \in ItemSets
 begin
     assert BestKnapsack(itemset) \in ValidKnapsacks(itemset);
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e9e49621" /\ chksum(tla) = "ecd18c24")
+\* BEGIN TRANSLATION (chksum(pcal) = "e9e49621" /\ chksum(tla) = "e319b293")
 VARIABLES itemset, pc
 
 vars == << itemset, pc >>
@@ -93,7 +101,7 @@ Init == (* Global variables *)
 
 Lbl_1 == /\ pc = "Lbl_1"
          /\ Assert(BestKnapsack(itemset) \in ValidKnapsacks(itemset), 
-                   "Failure of assertion at line 83, column 5.")
+                   "Failure of assertion at line 88, column 5.")
          /\ pc' = "Done"
          /\ UNCHANGED itemset
 
@@ -111,5 +119,5 @@ Termination == <>(pc = "Done")
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 13:30:58 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 13:50:12 GMT 2024 by frankeg
 \* Created Fri Nov 01 12:03:42 GMT 2024 by frankeg
