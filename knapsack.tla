@@ -19,9 +19,11 @@ HardcodedItemSet == [
     c |-> [size |-> 3, value |-> 1]
 ]
 
-ValueOf(item) == (CHOOSE struct \in HardcodedItemSet: struct.item = item).value
+ValueOf(item) == HardcodedItemSet[item].value
 E1 == ValueOf("b")
+ItemParams == [size: 2..4, value: 0..5]
+ItemSets == [a: ItemParams, b: ItemParams, c: ItemParams]
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 12:14:22 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 12:22:27 GMT 2024 by frankeg
 \* Created Fri Nov 01 12:03:42 GMT 2024 by frankeg
