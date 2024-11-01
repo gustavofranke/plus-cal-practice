@@ -13,15 +13,15 @@ PT == INSTANCE PT
 Capacity == 7
 Items == {"a", "b", "c"}
 
-HardcodedItemSet == {
-    [item |-> "a", size |-> 1, value |-> 1],
-    [item |-> "b", size |-> 2, value |-> 3],
-    [item |-> "c", size |-> 3, value |-> 1]
-}
+HardcodedItemSet == [
+    a |-> [size |-> 1, value |-> 1],
+    b |-> [size |-> 2, value |-> 3],
+    c |-> [size |-> 3, value |-> 1]
+]
 
 ValueOf(item) == (CHOOSE struct \in HardcodedItemSet: struct.item = item).value
 E1 == ValueOf("b")
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 12:11:33 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 12:14:22 GMT 2024 by frankeg
 \* Created Fri Nov 01 12:03:42 GMT 2024 by frankeg
