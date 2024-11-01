@@ -22,8 +22,8 @@ HardcodedItemSet == [
 ValueOf(item) == HardcodedItemSet[item].value
 E1 == ValueOf("b")
 ItemParams == [size: 2..4, value: 0..5]
-ItemSets == [a: ItemParams, b: ItemParams, c: ItemParams]
+ItemSets == [Items -> ItemParams]
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 12:22:27 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 12:26:40 GMT 2024 by frankeg
 \* Created Fri Nov 01 12:03:42 GMT 2024 by frankeg
