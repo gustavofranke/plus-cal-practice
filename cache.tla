@@ -1,15 +1,16 @@
 ------------------------------- MODULE cache -------------------------------
 \* Several clients consume some shared resource that periodically renews.
 EXTENDS Integers
-CONSTANT ResourceCap, MaxConsumerReq
+CONSTANT ResourceCap, MaxConsumerReq, Actors
 ASSUME ResourceCap > 0
+ASSUME Actors /= {}
 ASSUME MaxConsumerReq \in 1..ResourceCap
 (*--algorithm cache
 variables resources_left = ResourceCap;
 define
     ResourceInvariant == resources_left >= 0
 end define;
-process actor = "actor"
+process actor \in Actors
 variables
     resources_needed \in 1..MaxConsumerReq
 begin
@@ -26,7 +27,7 @@ begin
         goto Tick;
 end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "be3be65b" /\ chksum(tla) = "f0c57b4a")
+\* BEGIN TRANSLATION (chksum(pcal) = "ed6aa90c" /\ chksum(tla) = "f1560614")
 VARIABLES resources_left, pc
 
 (* define statement *)
@@ -36,22 +37,22 @@ VARIABLE resources_needed
 
 vars == << resources_left, pc, resources_needed >>
 
-ProcSet == {"actor"} \cup {"time"}
+ProcSet == (Actors) \cup {"time"}
 
 Init == (* Global variables *)
         /\ resources_left = ResourceCap
         (* Process actor *)
-        /\ resources_needed \in 1..MaxConsumerReq
-        /\ pc = [self \in ProcSet |-> CASE self = "actor" -> "UseResources"
+        /\ resources_needed \in [Actors -> 1..MaxConsumerReq]
+        /\ pc = [self \in ProcSet |-> CASE self \in Actors -> "UseResources"
                                         [] self = "time" -> "Tick"]
 
-UseResources == /\ pc["actor"] = "UseResources"
-                /\ resources_left >= resources_needed
-                /\ resources_left' = resources_left - resources_needed
-                /\ pc' = [pc EXCEPT !["actor"] = "UseResources"]
-                /\ UNCHANGED resources_needed
+UseResources(self) == /\ pc[self] = "UseResources"
+                      /\ resources_left >= resources_needed[self]
+                      /\ resources_left' = resources_left - resources_needed[self]
+                      /\ pc' = [pc EXCEPT ![self] = "UseResources"]
+                      /\ UNCHANGED resources_needed
 
-actor == UseResources
+actor(self) == UseResources(self)
 
 Tick == /\ pc["time"] = "Tick"
         /\ resources_left' = ResourceCap
@@ -60,12 +61,13 @@ Tick == /\ pc["time"] = "Tick"
 
 time == Tick
 
-Next == actor \/ time
+Next == time
+           \/ (\E self \in Actors: actor(self))
 
 Spec == Init /\ [][Next]_vars
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 16:28:08 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 16:36:04 GMT 2024 by frankeg
 \* Created Fri Nov 01 16:11:59 GMT 2024 by frankeg
