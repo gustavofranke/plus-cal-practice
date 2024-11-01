@@ -71,7 +71,12 @@ Spec == /\ Init /\ [][Next]_vars
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
+AtMostOneCritical ==
+    \/ \A t \in Threads: pc[t] /= "CS"
+    \/ \E t \in Threads:
+        /\ pc[t] = "CS"
+        /\ \A t2 \in Threads \ {t}: pc[t2] /= "CS"
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 22:38:38 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 22:39:00 GMT 2024 by frankeg
 \* Created Fri Nov 01 22:12:48 GMT 2024 by frankeg
