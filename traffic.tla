@@ -11,22 +11,22 @@ NextColor(c) == CASE c = "red" -> "green"
 variables
     at_light = TRUE,
     light = "red";
-process light = "light"
+fair process light = "light"
 begin
     Cycle:
         while at_light do
             light := NextColor(light);
         end while;
 end process;
-process car = "car"
+fair process car = "car"
 begin
     Drive:
         when light = "green";
         at_light := FALSE;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "79b53216" /\ chksum(tla) = "7529040b")
-\* Process light at line 14 col 1 changed to light_
+\* BEGIN TRANSLATION (chksum(pcal) = "ab488d60" /\ chksum(tla) = "1a20ac07")
+\* Process light at line 14 col 6 changed to light_
 VARIABLES at_light, light, pc
 
 vars == << at_light, light, pc >>
@@ -64,12 +64,14 @@ Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
 Next == light_ \/ car
            \/ Terminating
 
-Spec == Init /\ [][Next]_vars
+Spec == /\ Init /\ [][Next]_vars
+        /\ WF_vars(light_)
+        /\ WF_vars(car)
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 21:57:48 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 22:00:36 GMT 2024 by frankeg
 \* Created Fri Nov 01 21:48:16 GMT 2024 by frankeg
