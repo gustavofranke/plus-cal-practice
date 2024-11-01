@@ -46,14 +46,46 @@ BestKnapsack(itemset) ==
         KnapsackValue(best, itemset) > KnapsackValue(worse, itemset)
 E2 == BestKnapsack(HardcodedItemSet)
 E3 == KnapsackValue([a |-> 1, b |-> 3, c |-> 0], HardcodedItemSet)
-E4 == {BestKnapsack(itemset) : itemset \in ItemSets}
+\*E4 == {BestKnapsack(itemset) : itemset \in ItemSets}
 \* Attempted to compute the value of an expression of form
 \* CHOOSE x \in S: P, but no element of S satisfied P.
 \* Why does nothing satisfy it?
 \* In this case, we don’t have any information on which ItemSet caused the problem.
 \* For debugging purposes, let’s make this a PlusCal algorithm, so we get a trace.
 
+(*--algorithm debug
+variables itemset \in ItemSets
+begin
+    assert BestKnapsack(itemset) \in ValidKnapsacks(itemset);
+end algorithm; *)
+\* BEGIN TRANSLATION (chksum(pcal) = "e9e49621" /\ chksum(tla) = "b2e17a72")
+VARIABLES itemset, pc
+
+vars == << itemset, pc >>
+
+Init == (* Global variables *)
+        /\ itemset \in ItemSets
+        /\ pc = "Lbl_1"
+
+Lbl_1 == /\ pc = "Lbl_1"
+         /\ Assert(BestKnapsack(itemset) \in ValidKnapsacks(itemset), 
+                   "Failure of assertion at line 59, column 5.")
+         /\ pc' = "Done"
+         /\ UNCHANGED itemset
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == pc = "Done" /\ UNCHANGED vars
+
+Next == Lbl_1
+           \/ Terminating
+
+Spec == Init /\ [][Next]_vars
+
+Termination == <>(pc = "Done")
+
+\* END TRANSLATION 
+
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 12:50:58 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 13:05:56 GMT 2024 by frankeg
 \* Created Fri Nov 01 12:03:42 GMT 2024 by frankeg
