@@ -8,25 +8,39 @@ begin Write:
         queue := Append(queue, "msg");
     end while;
 end process;
+process reader = "reader"
+variables current_message = "none";
+begin Read:
+    while TRUE do
+        current_message := Head(queue);
+        queue := Tail(queue);
+    end while;
+end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "1ade2ba" /\ chksum(tla) = "e2665637")
-VARIABLE queue
+\* BEGIN TRANSLATION (chksum(pcal) = "a798b384" /\ chksum(tla) = "197f644c")
+VARIABLES queue, current_message
 
-vars == << queue >>
+vars == << queue, current_message >>
 
-ProcSet == {"writer"}
+ProcSet == {"writer"} \cup {"reader"}
 
 Init == (* Global variables *)
         /\ queue = <<>>
+        (* Process reader *)
+        /\ current_message = "none"
 
-writer == queue' = Append(queue, "msg")
+writer == /\ queue' = Append(queue, "msg")
+          /\ UNCHANGED current_message
 
-Next == writer
+reader == /\ current_message' = Head(queue)
+          /\ queue' = Tail(queue)
+
+Next == writer \/ reader
 
 Spec == Init /\ [][Next]_vars
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 15:30:05 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 15:31:08 GMT 2024 by frankeg
 \* Created Fri Nov 01 15:18:56 GMT 2024 by frankeg
