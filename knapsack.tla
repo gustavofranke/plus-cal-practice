@@ -53,12 +53,36 @@ E3 == KnapsackValue([a |-> 1, b |-> 3, c |-> 0], HardcodedItemSet)
 \* In this case, we don’t have any information on which ItemSet caused the problem.
 \* For debugging purposes, let’s make this a PlusCal algorithm, so we get a trace.
 
+
+\* Choose the subset of valid knapsacks that are higher than everything outside of that set.
+\* This most closely matches the defintion of "best knapsacks".
+BestKnapsacksOne(itemset) ==
+    LET all == ValidKnapsacks(itemset)
+    IN CHOOSE all_the_best \in SUBSET all:
+        \A good \in all_the_best:
+            /\ \A other \in all_the_best:
+                KnapsackValue(good, itemset) = KnapsackValue(other, itemset)
+            /\ \A worse \in all \ all_the_best:
+                KnapsackValue(good, itemset) > KnapsackValue(worse, itemset)
+
+\* Pick a best knapsack arbitrarily, calculate its value, and filter for all the other knapsacks that match it.
+BestKnapsacksTwo(itemset) ==
+    LET
+        all == ValidKnapsacks(itemset)
+        best == CHOOSE best \in all:
+            \A worse \in all \ {best}:
+                KnapsackValue(best, itemset) >= KnapsackValue(worse, itemset)
+        value_of_best == KnapsackValue(best, itemset)
+    IN
+        {k \in all: value_of_best = KnapsackValue(k, itemset)}
+    
+
 (*--algorithm debug
 variables itemset \in ItemSets
 begin
     assert BestKnapsack(itemset) \in ValidKnapsacks(itemset);
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e9e49621" /\ chksum(tla) = "b2e17a72")
+\* BEGIN TRANSLATION (chksum(pcal) = "e9e49621" /\ chksum(tla) = "ecd18c24")
 VARIABLES itemset, pc
 
 vars == << itemset, pc >>
@@ -69,7 +93,7 @@ Init == (* Global variables *)
 
 Lbl_1 == /\ pc = "Lbl_1"
          /\ Assert(BestKnapsack(itemset) \in ValidKnapsacks(itemset), 
-                   "Failure of assertion at line 59, column 5.")
+                   "Failure of assertion at line 83, column 5.")
          /\ pc' = "Done"
          /\ UNCHANGED itemset
 
@@ -87,5 +111,5 @@ Termination == <>(pc = "Done")
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 13:05:56 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 13:30:58 GMT 2024 by frankeg
 \* Created Fri Nov 01 12:03:42 GMT 2024 by frankeg
