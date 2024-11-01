@@ -16,7 +16,7 @@ begin Write:
         add_to_queue("msg");
     end while;
 end process;
-process reader = "reader"
+process reader \in {"r1", "r2"}
 variables current_message = "none";
 begin Read:
     while TRUE do
@@ -28,12 +28,12 @@ begin Read:
         or
             NotifyFailure:
                 current_message := "none";
-                add_to_queue("fail");
+                add_to_queue(self);
         end either;
     end while;
 end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "88be12bb" /\ chksum(tla) = "2880d8aa")
+\* BEGIN TRANSLATION (chksum(pcal) = "fd95b31f" /\ chksum(tla) = "444658bb")
 VARIABLES queue, pc
 
 (* define statement *)
@@ -43,14 +43,14 @@ VARIABLE current_message
 
 vars == << queue, pc, current_message >>
 
-ProcSet == {"writer"} \cup {"reader"}
+ProcSet == {"writer"} \cup ({"r1", "r2"})
 
 Init == (* Global variables *)
         /\ queue = <<>>
         (* Process reader *)
-        /\ current_message = "none"
+        /\ current_message = [self \in {"r1", "r2"} |-> "none"]
         /\ pc = [self \in ProcSet |-> CASE self = "writer" -> "Write"
-                                        [] self = "reader" -> "Read"]
+                                        [] self \in {"r1", "r2"} -> "Read"]
 
 Write == /\ pc["writer"] = "Write"
          /\ Len(queue) < MaxQueueSize
@@ -60,28 +60,29 @@ Write == /\ pc["writer"] = "Write"
 
 writer == Write
 
-Read == /\ pc["reader"] = "Read"
-        /\ queue /= <<>>
-        /\ current_message' = Head(queue)
-        /\ queue' = Tail(queue)
-        /\ \/ /\ TRUE
-              /\ pc' = [pc EXCEPT !["reader"] = "Read"]
-           \/ /\ pc' = [pc EXCEPT !["reader"] = "NotifyFailure"]
+Read(self) == /\ pc[self] = "Read"
+              /\ queue /= <<>>
+              /\ current_message' = [current_message EXCEPT ![self] = Head(queue)]
+              /\ queue' = Tail(queue)
+              /\ \/ /\ TRUE
+                    /\ pc' = [pc EXCEPT ![self] = "Read"]
+                 \/ /\ pc' = [pc EXCEPT ![self] = "NotifyFailure"]
 
-NotifyFailure == /\ pc["reader"] = "NotifyFailure"
-                 /\ current_message' = "none"
-                 /\ Len(queue) < MaxQueueSize
-                 /\ queue' = Append(queue, "fail")
-                 /\ pc' = [pc EXCEPT !["reader"] = "Read"]
+NotifyFailure(self) == /\ pc[self] = "NotifyFailure"
+                       /\ current_message' = [current_message EXCEPT ![self] = "none"]
+                       /\ Len(queue) < MaxQueueSize
+                       /\ queue' = Append(queue, self)
+                       /\ pc' = [pc EXCEPT ![self] = "Read"]
 
-reader == Read \/ NotifyFailure
+reader(self) == Read(self) \/ NotifyFailure(self)
 
-Next == writer \/ reader
+Next == writer
+           \/ (\E self \in {"r1", "r2"}: reader(self))
 
 Spec == Init /\ [][Next]_vars
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 15:53:33 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 15:56:32 GMT 2024 by frankeg
 \* Created Fri Nov 01 15:18:56 GMT 2024 by frankeg
