@@ -16,12 +16,13 @@ process reader = "reader"
 variables current_message = "none";
 begin Read:
     while TRUE do
+        await queue /= <<>>;
         current_message := Head(queue);
         queue := Tail(queue);
     end while;
 end process;
 end algorithm;*)
-\* BEGIN TRANSLATION (chksum(pcal) = "c4107529" /\ chksum(tla) = "8c5057a2")
+\* BEGIN TRANSLATION (chksum(pcal) = "97f3b76d" /\ chksum(tla) = "1c35dd73")
 VARIABLE queue
 
 (* define statement *)
@@ -41,7 +42,8 @@ Init == (* Global variables *)
 writer == /\ queue' = Append(queue, "msg")
           /\ UNCHANGED current_message
 
-reader == /\ current_message' = Head(queue)
+reader == /\ queue /= <<>>
+          /\ current_message' = Head(queue)
           /\ queue' = Tail(queue)
 
 Next == writer \/ reader
@@ -51,5 +53,5 @@ Spec == Init /\ [][Next]_vars
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 15:34:27 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 15:38:16 GMT 2024 by frankeg
 \* Created Fri Nov 01 15:18:56 GMT 2024 by frankeg
