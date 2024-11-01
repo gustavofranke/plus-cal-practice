@@ -146,7 +146,23 @@ E62 == Permutations({1, 2, 3})
 E63 == SortSeq(<<1, 2, 3>>, LAMBDA x, y: x > y)
 E64 == CHOOSE seq \in Permutations({1, 2, 3}): TRUE
 
+INSTANCE Point WITH X <- 1, Y <- 2
+E65 == Point
+E66 == AddPoint(3, 4)
+
+P1(Y) == INSTANCE Point WITH X <- 1
+P2(X) == INSTANCE Point WITH Y <- 1
+P3(X, Y) == INSTANCE Point
+
+E67 == P1(3)!Point
+E68 == P2(3)!AddPoint(1, 1)
+E69 == P3(1, 2)!AddPoint(2, 3)
+
+X == 1
+Y == 2
+P == INSTANCE Point
+E70 == P!Point
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 14:23:50 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 14:59:19 GMT 2024 by frankeg
 \* Created Thu Oct 31 16:54:07 GMT 2024 by frankeg
