@@ -18,14 +18,14 @@ begin
             light := NextColor(light);
         end while;
 end process;
-fair process car = "car"
+fair+ process car = "car"
 begin
     Drive:
         when light = "green";
         at_light := FALSE;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "ab488d60" /\ chksum(tla) = "1a20ac07")
+\* BEGIN TRANSLATION (chksum(pcal) = "10e15a9a" /\ chksum(tla) = "f8d75175")
 \* Process light at line 14 col 6 changed to light_
 VARIABLES at_light, light, pc
 
@@ -66,12 +66,12 @@ Next == light_ \/ car
 
 Spec == /\ Init /\ [][Next]_vars
         /\ WF_vars(light_)
-        /\ WF_vars(car)
+        /\ SF_vars(car)
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 22:00:36 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 22:01:40 GMT 2024 by frankeg
 \* Created Fri Nov 01 21:48:16 GMT 2024 by frankeg
