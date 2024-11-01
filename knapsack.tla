@@ -82,9 +82,6 @@ E5 == LET is == CHOOSE is \in ItemSets:
     BestKnapsacksTwo(is) /= BestKnapsacksOne(is)
     IN <<is, BestKnapsacksOne(is), BestKnapsacksTwo(is)>>
 
-E6 == \A is \in ItemSets: BestKnapsacksTwo(is)
-E7 == \A is \in ItemSets: BestKnapsacksOne(is)
-
 (*--algorithm debug
 variables itemset \in ItemSets
 begin
@@ -119,5 +116,5 @@ Termination == <>(pc = "Done")
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 01 13:50:12 GMT 2024 by frankeg
+\* Last modified Fri Nov 01 14:03:06 GMT 2024 by frankeg
 \* Created Fri Nov 01 12:03:42 GMT 2024 by frankeg
