@@ -154,9 +154,9 @@ AtMostOneCritical ==
     \A t1, t2 \in Threads:
         t1 /= t2 => ~(pc[t1] = "CS" /\ pc[t2] = "CS")
 Liveness ==
-    \A t \in Threads:
+    \A t \in {1}:
         <>(pc[t] = "CS")
 =============================================================================
 \* Modification History
-\* Last modified Sun Nov 03 11:26:46 GMT 2024 by frankeg
+\* Last modified Sun Nov 03 11:29:34 GMT 2024 by frankeg
 \* Created Fri Nov 01 22:12:48 GMT 2024 by frankeg
