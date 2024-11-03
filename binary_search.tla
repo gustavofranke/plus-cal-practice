@@ -33,8 +33,8 @@ begin
         while low <= high do
             counter := counter + 1;
             with
-                lh = low + high,
-                m = lh \div 2
+                lh = high - low,
+                m = high - (lh \div 2)
             do 
                     assert lh <= MaxInt;
                     if seq[m] = target then
@@ -58,7 +58,7 @@ begin
             assert found_index = 0;
         end if;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "bd03ea2e" /\ chksum(tla) = "d0960456")
+\* BEGIN TRANSLATION (chksum(pcal) = "8ff0a0e7" /\ chksum(tla) = "b7304a9e")
 VARIABLES low, seq, high, target, found_index, counter, pc
 
 vars == << low, seq, high, target, found_index, counter, pc >>
@@ -75,8 +75,8 @@ Init == (* Global variables *)
 Search == /\ pc = "Search"
           /\ IF low <= high
                 THEN /\ counter' = counter + 1
-                     /\ LET lh == low + high IN
-                          LET m == lh \div 2 IN
+                     /\ LET lh == high - low IN
+                          LET m == high - (lh \div 2) IN
                             /\ Assert(lh <= MaxInt, 
                                       "Failure of assertion at line 39, column 21.")
                             /\ IF seq[m] = target
@@ -120,5 +120,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Sun Nov 03 22:04:13 GMT 2024 by frankeg
+\* Last modified Sun Nov 03 22:10:09 GMT 2024 by frankeg
 \* Created Sun Nov 03 21:26:45 GMT 2024 by frankeg
