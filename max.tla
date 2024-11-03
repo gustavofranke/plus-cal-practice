@@ -11,10 +11,11 @@ PT == INSTANCE PT
 Max(seq) ==
     LET set == {seq[i]: i \in 1..Len(seq)}
     IN CHOOSE x \in set: \A y \in set: y <= x
-AllInputs == PT!SeqOf(IntSet, MaxSeqLen)
+AllInputs == PT!SeqOf(IntSet, MaxSeqLen) \ {<<>>}
 (*--algorithm max
 variables seq \in AllInputs, i = 1, max;
 begin
+    assert Len(seq) > 0;
     max := seq[1];
     while i <= Len(seq) do
         if max < seq[i] then
@@ -24,7 +25,7 @@ begin
     end while;
     assert max = Max(seq);
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1aaa590b" /\ chksum(tla) = "b6b88c7d")
+\* BEGIN TRANSLATION (chksum(pcal) = "b70f0b56" /\ chksum(tla) = "adee3469")
 CONSTANT defaultInitValue
 VARIABLES seq, i, max, pc
 
@@ -37,6 +38,8 @@ Init == (* Global variables *)
         /\ pc = "Lbl_1"
 
 Lbl_1 == /\ pc = "Lbl_1"
+         /\ Assert(Len(seq) > 0, 
+                   "Failure of assertion at line 18, column 5.")
          /\ max' = seq[1]
          /\ pc' = "Lbl_2"
          /\ UNCHANGED << seq, i >>
@@ -50,7 +53,7 @@ Lbl_2 == /\ pc = "Lbl_2"
                     /\ i' = i + 1
                     /\ pc' = "Lbl_2"
                ELSE /\ Assert(max = Max(seq), 
-                              "Failure of assertion at line 25, column 5.")
+                              "Failure of assertion at line 26, column 5.")
                     /\ pc' = "Done"
                     /\ UNCHANGED << i, max >>
          /\ seq' = seq
@@ -68,5 +71,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Sun Nov 03 12:10:00 GMT 2024 by frankeg
+\* Last modified Sun Nov 03 12:19:11 GMT 2024 by frankeg
 \* Created Sun Nov 03 11:31:50 GMT 2024 by frankeg
