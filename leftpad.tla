@@ -6,8 +6,20 @@
  For example, Leftpad(" ", 5, "foo") = "  foo" ,
  while Leftpad(" ", 1, "foo") = "foo".
 *)
+EXTENDS Sequences, Integers
+PT == INSTANCE PT
 
+Leftpad(c, n, str) ==
+    LET
+        outlength == PT!Max(Len(str), n)
+        padlength ==
+            CHOOSE padlength \in 0..n:
+                padlength + Len(str) = outlength
+    IN
+        [x \in 1..padlength |-> c] \o str
+E1 == Leftpad(" ", 1, <<"f", "o", "o">>) \* <<"f", "o", "o">>
+E2 == Leftpad(" ", 5, <<"f", "o", "o">>)
 =============================================================================
 \* Modification History
-\* Last modified Sun Nov 03 12:23:39 GMT 2024 by frankeg
+\* Last modified Sun Nov 03 20:58:29 GMT 2024 by frankeg
 \* Created Sun Nov 03 12:21:52 GMT 2024 by frankeg
