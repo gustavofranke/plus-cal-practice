@@ -32,15 +32,19 @@ begin
     Search:
         while low <= high do
             counter := counter + 1;
-            with m = (high + low) \div 2 do
-                if seq[m] = target then
-                    found_index := m;
-                    goto Result;
-                elsif seq[m] < target then
-                    low := m + 1;
-                else
-                    high := m - 1;
-                end if;
+            with
+                lh = low + high,
+                m = lh \div 2
+            do 
+                    assert lh <= MaxInt;
+                    if seq[m] = target then
+                        found_index := m;
+                        goto Result;
+                    elsif seq[m] < target then
+                        low := m + 1;
+                    else
+                        high := m - 1;
+                    end if;
             end with;
         end while;
     Result:
@@ -54,7 +58,7 @@ begin
             assert found_index = 0;
         end if;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "94b676fb" /\ chksum(tla) = "3c5fd7")
+\* BEGIN TRANSLATION (chksum(pcal) = "bd03ea2e" /\ chksum(tla) = "d0960456")
 VARIABLES low, seq, high, target, found_index, counter, pc
 
 vars == << low, seq, high, target, found_index, counter, pc >>
@@ -71,18 +75,21 @@ Init == (* Global variables *)
 Search == /\ pc = "Search"
           /\ IF low <= high
                 THEN /\ counter' = counter + 1
-                     /\ LET m == (high + low) \div 2 IN
-                          IF seq[m] = target
-                             THEN /\ found_index' = m
-                                  /\ pc' = "Result"
-                                  /\ UNCHANGED << low, high >>
-                             ELSE /\ IF seq[m] < target
-                                        THEN /\ low' = m + 1
-                                             /\ high' = high
-                                        ELSE /\ high' = m - 1
-                                             /\ low' = low
-                                  /\ pc' = "Search"
-                                  /\ UNCHANGED found_index
+                     /\ LET lh == low + high IN
+                          LET m == lh \div 2 IN
+                            /\ Assert(lh <= MaxInt, 
+                                      "Failure of assertion at line 39, column 21.")
+                            /\ IF seq[m] = target
+                                  THEN /\ found_index' = m
+                                       /\ pc' = "Result"
+                                       /\ UNCHANGED << low, high >>
+                                  ELSE /\ IF seq[m] < target
+                                             THEN /\ low' = m + 1
+                                                  /\ high' = high
+                                             ELSE /\ high' = m - 1
+                                                  /\ low' = low
+                                       /\ pc' = "Search"
+                                       /\ UNCHANGED found_index
                 ELSE /\ pc' = "Result"
                      /\ UNCHANGED << low, high, found_index, counter >>
           /\ UNCHANGED << seq, target >>
@@ -90,13 +97,13 @@ Search == /\ pc = "Search"
 Result == /\ pc = "Result"
           /\ IF Len(seq) > 0
                 THEN /\ Assert(Pow2(counter - 1) <= Len(seq), 
-                               "Failure of assertion at line 48, column 13.")
+                               "Failure of assertion at line 52, column 13.")
                 ELSE /\ TRUE
           /\ IF target \in Range(seq)
                 THEN /\ Assert(seq[found_index] = target, 
-                               "Failure of assertion at line 51, column 13.")
+                               "Failure of assertion at line 55, column 13.")
                 ELSE /\ Assert(found_index = 0, 
-                               "Failure of assertion at line 54, column 13.")
+                               "Failure of assertion at line 58, column 13.")
           /\ pc' = "Done"
           /\ UNCHANGED << low, seq, high, target, found_index, counter >>
 
@@ -113,5 +120,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Sun Nov 03 21:59:58 GMT 2024 by frankeg
+\* Last modified Sun Nov 03 22:04:13 GMT 2024 by frankeg
 \* Created Sun Nov 03 21:26:45 GMT 2024 by frankeg
