@@ -4,10 +4,12 @@ LOCAL INSTANCE FiniteSets \* For Cardinality
 LOCAL INSTANCE Sequences \* For len
 LOCAL INSTANCE TLC \* For Assert
 LOCAL INSTANCE Integers \* For a..b
+
 PointerMaps(Nodes) == [Nodes -> Nodes \union {NULL}]
 
 \* While Range is defined in PT, we don't want a generic module reliant on PT!
-Range(f) == {f[x]: x \in DOMAIN f}
+LOCAL Range(f) == {f[x]: x \in DOMAIN f}
+
 \* PointerMap is an element of PointerMaps
 isLinkedList(PointerMap) ==
     LET
@@ -26,7 +28,7 @@ LinkedLists(Nodes) ==
         pointer_maps_sets == {PointerMaps(subn): subn \in node_subsets}
         all_pointer_maps == UNION pointer_maps_sets
     IN {pm \in all_pointer_maps : isLinkedList(pm)}
-
+Cyclic(LL) == NULL \notin Range(LL)
 Ring(LL) == (DOMAIN LL = Range(LL))
 First(LL) ==
     IF Ring(LL)
@@ -36,5 +38,5 @@ First(LL) ==
         node \notin Range(LL)
 =============================================================================
 \* Modification History
-\* Last modified Thu Nov 07 21:35:18 GMT 2024 by frankeg
+\* Last modified Thu Nov 07 21:38:43 GMT 2024 by frankeg
 \* Created Mon Nov 04 09:09:26 GMT 2024 by frankeg
