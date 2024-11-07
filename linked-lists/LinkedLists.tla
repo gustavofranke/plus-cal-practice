@@ -4,7 +4,11 @@ LOCAL INSTANCE TLC \* For Assert
 PointerMaps(Nodes) == [Nodes -> Nodes \union {NULL}]
 LinkedLists(Nodes) ==
     IF NULL \in Nodes THEN Assert(FALSE, "NULL cannot be in Nodes") ELSE
-    {pm \in PointerMaps(Nodes} : isLinkedList(pm)}
+    LET
+        node_subsets == (SUBSET NODES \ {{}})
+        pointer_maps_sets == {PointerMaps(subn): subn \in node_subsets}
+        all_pointer_maps == UNION pointer_maps_sets
+    IN {pm \in all_pointer_maps : isLinkedList(pm)}
 
 \* PointerMap is an element of PointerMaps
 isLinkedList(PointerMap) ==
@@ -20,5 +24,5 @@ isLinkedList(PointerMap) ==
 Range(f) == {f[x]: x \in DOMAIN f}
 =============================================================================
 \* Modification History
-\* Last modified Thu Nov 07 21:13:13 GMT 2024 by frankeg
+\* Last modified Thu Nov 07 21:18:00 GMT 2024 by frankeg
 \* Created Mon Nov 04 09:09:26 GMT 2024 by frankeg
