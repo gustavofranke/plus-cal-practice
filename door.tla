@@ -17,12 +17,12 @@ begin
             await ~open;
             open := TRUE;
         or \* close
-            await open;
+            await open /\ ~locked;
             open := FALSE;
         end either;
     goto Event;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "580244f3" /\ chksum(tla) = "48ed8048")
+\* BEGIN TRANSLATION (chksum(pcal) = "72f5cebf" /\ chksum(tla) = "7ce04a73")
 VARIABLES open, locked, key, pc
 
 vars == << open, locked, key, pc >>
@@ -44,7 +44,7 @@ Event == /\ pc = "Event"
                /\ ~open
                /\ open' = TRUE
                /\ UNCHANGED locked
-            \/ /\ open
+            \/ /\ open /\ ~locked
                /\ open' = FALSE
                /\ UNCHANGED locked
          /\ pc' = "Event"
@@ -63,5 +63,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 08 16:59:33 GMT 2024 by frankeg
+\* Last modified Fri Nov 08 17:01:53 GMT 2024 by frankeg
 \* Created Fri Nov 08 15:06:24 GMT 2024 by frankeg
