@@ -41,7 +41,7 @@ begin
                 Confirm:
                     wait_for_response();
                     result := query[self].result;
-                    assert result = db_value;
+                    assert result = ghost_db_history[self];
             or \* write
                 with d \in Data do
                     request([request |-> "write", data |-> d]);
@@ -52,7 +52,7 @@ begin
         end while;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "91e04628" /\ chksum(tla) = "3c5df40d")
+\* BEGIN TRANSLATION (chksum(pcal) = "14edd522" /\ chksum(tla) = "85040595")
 VARIABLES query, ghost_db_history, pc
 
 (* define statement *)
@@ -103,7 +103,7 @@ Request(self) == /\ pc[self] = "Request"
 Confirm(self) == /\ pc[self] = "Confirm"
                  /\ query[self].type = "response"
                  /\ result' = [result EXCEPT ![self] = query[self].result]
-                 /\ Assert(result'[self] = db_value, 
+                 /\ Assert(result'[self] = ghost_db_history[self], 
                            "Failure of assertion at line 44, column 21.")
                  /\ pc' = [pc EXCEPT ![self] = "Request"]
                  /\ UNCHANGED << query, ghost_db_history, db_value >>
@@ -123,5 +123,5 @@ Spec == Init /\ [][Next]_vars
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 08 21:18:36 GMT 2024 by frankeg
+\* Last modified Fri Nov 08 21:19:49 GMT 2024 by frankeg
 \* Created Fri Nov 08 20:35:30 GMT 2024 by frankeg
