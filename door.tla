@@ -3,13 +3,14 @@
 variables
     open = FALSE;
     locked = FALSE;
+    key \in BOOLEAN;
 begin
     Event:
         either \* unlock
-            await locked;
+            await locked /\ (open \/ key);
             locked := FALSE;
         or \* lock
-            await ~locked;
+            await ~locked /\ (open \/ key);
             locked := TRUE;
         or \* open
             await ~locked;
@@ -21,21 +22,22 @@ begin
         end either;
     goto Event;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "a887c9a5" /\ chksum(tla) = "4888dead")
-VARIABLES open, locked, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "580244f3" /\ chksum(tla) = "48ed8048")
+VARIABLES open, locked, key, pc
 
-vars == << open, locked, pc >>
+vars == << open, locked, key, pc >>
 
 Init == (* Global variables *)
         /\ open = FALSE
         /\ locked = FALSE
+        /\ key \in BOOLEAN
         /\ pc = "Event"
 
 Event == /\ pc = "Event"
-         /\ \/ /\ locked
+         /\ \/ /\ locked /\ (open \/ key)
                /\ locked' = FALSE
                /\ open' = open
-            \/ /\ ~locked
+            \/ /\ ~locked /\ (open \/ key)
                /\ locked' = TRUE
                /\ open' = open
             \/ /\ ~locked
@@ -46,6 +48,7 @@ Event == /\ pc = "Event"
                /\ open' = FALSE
                /\ UNCHANGED locked
          /\ pc' = "Event"
+         /\ key' = key
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == pc = "Done" /\ UNCHANGED vars
@@ -60,5 +63,5 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 08 16:48:45 GMT 2024 by frankeg
+\* Last modified Fri Nov 08 16:59:33 GMT 2024 by frankeg
 \* Created Fri Nov 08 15:06:24 GMT 2024 by frankeg
