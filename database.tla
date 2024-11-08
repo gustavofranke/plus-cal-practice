@@ -4,7 +4,7 @@ CONSTANTS Data, NULL, Clients
 (*--algorithm database
 variables
     query = [c \in Clients |-> NULL];
-    db_value \in Data;
+    ghost_db_history = [c \in Clients |-> NULL];
 define Exists(val) == val /= NULL
     RequestingClients == {c \in Clients: Exists(query[c]) /\ query[c].type = "request"}
 end define;
@@ -15,6 +15,7 @@ macro wait_for_response() begin
     await query[self].type = "response";
 end macro;
 process database = "Database"
+variable db_value \in Data;
 begin
     DB:
         with client \in RequestingClients, q = query[client] do
@@ -25,6 +26,7 @@ begin
             else
                 assert FALSE;
             end if;
+            ghost_db_history[client] := db_value;
             query[client] := [type |-> "response", result |-> db_value];
         end with;
     goto DB;
@@ -50,21 +52,23 @@ begin
         end while;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1fab1a69" /\ chksum(tla) = "158746c7")
-VARIABLES query, db_value, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "91e04628" /\ chksum(tla) = "3c5df40d")
+VARIABLES query, ghost_db_history, pc
 
 (* define statement *)
    Exists(val) == val /= NULL
 RequestingClients == {c \in Clients: Exists(query[c]) /\ query[c].type = "request"}
 
-VARIABLE result
+VARIABLES db_value, result
 
-vars == << query, db_value, pc, result >>
+vars == << query, ghost_db_history, pc, db_value, result >>
 
 ProcSet == {"Database"} \cup (Clients)
 
 Init == (* Global variables *)
         /\ query = [c \in Clients |-> NULL]
+        /\ ghost_db_history = [c \in Clients |-> NULL]
+        (* Process database *)
         /\ db_value \in Data
         (* Process clients *)
         /\ result = [self \in Clients |-> NULL]
@@ -79,8 +83,9 @@ DB == /\ pc["Database"] = "DB"
                    ELSE /\ IF q.request = "read"
                               THEN /\ TRUE
                               ELSE /\ Assert(FALSE, 
-                                             "Failure of assertion at line 26, column 17.")
+                                             "Failure of assertion at line 27, column 17.")
                         /\ UNCHANGED db_value
+             /\ ghost_db_history' = [ghost_db_history EXCEPT ![client] = db_value']
              /\ query' = [query EXCEPT ![client] = [type |-> "response", result |-> db_value']]
       /\ pc' = [pc EXCEPT !["Database"] = "DB"]
       /\ UNCHANGED result
@@ -93,20 +98,20 @@ Request(self) == /\ pc[self] = "Request"
                     \/ /\ \E d \in Data:
                             query' = [query EXCEPT ![self] = [type |-> "request"] @@ ([request |-> "write", data |-> d])]
                        /\ pc' = [pc EXCEPT ![self] = "Wait"]
-                 /\ UNCHANGED << db_value, result >>
+                 /\ UNCHANGED << ghost_db_history, db_value, result >>
 
 Confirm(self) == /\ pc[self] = "Confirm"
                  /\ query[self].type = "response"
                  /\ result' = [result EXCEPT ![self] = query[self].result]
                  /\ Assert(result'[self] = db_value, 
-                           "Failure of assertion at line 42, column 21.")
+                           "Failure of assertion at line 44, column 21.")
                  /\ pc' = [pc EXCEPT ![self] = "Request"]
-                 /\ UNCHANGED << query, db_value >>
+                 /\ UNCHANGED << query, ghost_db_history, db_value >>
 
 Wait(self) == /\ pc[self] = "Wait"
               /\ query[self].type = "response"
               /\ pc' = [pc EXCEPT ![self] = "Request"]
-              /\ UNCHANGED << query, db_value, result >>
+              /\ UNCHANGED << query, ghost_db_history, db_value, result >>
 
 clients(self) == Request(self) \/ Confirm(self) \/ Wait(self)
 
@@ -118,5 +123,5 @@ Spec == Init /\ [][Next]_vars
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 08 21:14:11 GMT 2024 by frankeg
+\* Last modified Fri Nov 08 21:18:36 GMT 2024 by frankeg
 \* Created Fri Nov 08 20:35:30 GMT 2024 by frankeg
