@@ -9,7 +9,7 @@ define Exists(val) == val /= NULL
     RequestingClients == {c \in Clients: Exists(query[c]) /\ query[c].type = "request"}
 end define;
 macro request(data) begin
-    query[self] := [type |-> "request", data |-> data]
+    query[self] := [type |-> "request"] @@ data;
 end macro;
 macro wait_for_response() begin
     await query[self].type = "response";
@@ -18,8 +18,14 @@ process database = "Database"
 begin
     DB:
         with client \in RequestingClients, q = query[client] do
-            db_value := q.data;
-            query[client] := [type |-> "response"];
+            if q.request = "write" then
+                db_value := q.data;
+            elsif q.request = "read" then
+                skip;
+            else
+                assert FALSE;
+            end if;
+            query[client] := [type |-> "response", result |-> db_value];
         end with;
     goto DB;
 end process;
@@ -29,11 +35,14 @@ begin
     Request:
         while TRUE do
             either \* read
-                result := db_value;
-                assert result = db_value;
+                request([request |-> "read"]);
+                Confirm:
+                    wait_for_response();
+                    result := query[self].result;
+                    assert result = db_value;
             or \* write
                 with d \in Data do
-                    request(d);
+                    request([request |-> "write", data |-> d]);
                 end with;
                 Wait:
                     wait_for_response();
@@ -41,7 +50,7 @@ begin
         end while;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e25d3a79" /\ chksum(tla) = "22adce56")
+\* BEGIN TRANSLATION (chksum(pcal) = "1fab1a69" /\ chksum(tla) = "158746c7")
 VARIABLES query, db_value, pc
 
 (* define statement *)
@@ -65,31 +74,41 @@ Init == (* Global variables *)
 DB == /\ pc["Database"] = "DB"
       /\ \E client \in RequestingClients:
            LET q == query[client] IN
-             /\ db_value' = q.data
-             /\ query' = [query EXCEPT ![client] = [type |-> "response"]]
+             /\ IF q.request = "write"
+                   THEN /\ db_value' = q.data
+                   ELSE /\ IF q.request = "read"
+                              THEN /\ TRUE
+                              ELSE /\ Assert(FALSE, 
+                                             "Failure of assertion at line 26, column 17.")
+                        /\ UNCHANGED db_value
+             /\ query' = [query EXCEPT ![client] = [type |-> "response", result |-> db_value']]
       /\ pc' = [pc EXCEPT !["Database"] = "DB"]
       /\ UNCHANGED result
 
 database == DB
 
 Request(self) == /\ pc[self] = "Request"
-                 /\ \/ /\ result' = [result EXCEPT ![self] = db_value]
-                       /\ Assert(result'[self] = db_value, 
-                                 "Failure of assertion at line 33, column 17.")
-                       /\ pc' = [pc EXCEPT ![self] = "Request"]
-                       /\ query' = query
+                 /\ \/ /\ query' = [query EXCEPT ![self] = [type |-> "request"] @@ ([request |-> "read"])]
+                       /\ pc' = [pc EXCEPT ![self] = "Confirm"]
                     \/ /\ \E d \in Data:
-                            query' = [query EXCEPT ![self] = [type |-> "request", data |-> d]]
+                            query' = [query EXCEPT ![self] = [type |-> "request"] @@ ([request |-> "write", data |-> d])]
                        /\ pc' = [pc EXCEPT ![self] = "Wait"]
-                       /\ UNCHANGED result
-                 /\ UNCHANGED db_value
+                 /\ UNCHANGED << db_value, result >>
+
+Confirm(self) == /\ pc[self] = "Confirm"
+                 /\ query[self].type = "response"
+                 /\ result' = [result EXCEPT ![self] = query[self].result]
+                 /\ Assert(result'[self] = db_value, 
+                           "Failure of assertion at line 42, column 21.")
+                 /\ pc' = [pc EXCEPT ![self] = "Request"]
+                 /\ UNCHANGED << query, db_value >>
 
 Wait(self) == /\ pc[self] = "Wait"
               /\ query[self].type = "response"
               /\ pc' = [pc EXCEPT ![self] = "Request"]
               /\ UNCHANGED << query, db_value, result >>
 
-clients(self) == Request(self) \/ Wait(self)
+clients(self) == Request(self) \/ Confirm(self) \/ Wait(self)
 
 Next == database
            \/ (\E self \in Clients: clients(self))
@@ -99,5 +118,5 @@ Spec == Init /\ [][Next]_vars
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Fri Nov 08 21:03:24 GMT 2024 by frankeg
+\* Last modified Fri Nov 08 21:14:11 GMT 2024 by frankeg
 \* Created Fri Nov 08 20:35:30 GMT 2024 by frankeg
