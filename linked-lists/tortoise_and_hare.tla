@@ -25,7 +25,7 @@ begin
         end if;
     end while;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "710e8918" /\ chksum(tla) = "22344cad")
+\* BEGIN TRANSLATION (chksum(pcal) = "710e8918" /\ chksum(tla) = "805253e0")
 VARIABLES ll, tortoise, hare, pc
 
 vars == << ll, tortoise, hare, pc >>
@@ -77,13 +77,12 @@ Terminating == pc = "Done" /\ UNCHANGED vars
 Next == Lbl_1 \/ Lbl_2 \/ Lbl_3 \/ Lbl_4
            \/ Terminating
 
-Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(Next)
+Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
 \* END TRANSLATION 
 =============================================================================
 \* Modification History
-\* Last modified Thu Nov 07 21:58:32 GMT 2024 by frankeg
+\* Last modified Thu Nov 07 22:02:35 GMT 2024 by frankeg
 \* Created Thu Nov 07 21:50:15 GMT 2024 by frankeg
