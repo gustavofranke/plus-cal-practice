@@ -1,5 +1,6 @@
 ------------------------------ MODULE library ------------------------------
 EXTENDS Integers, TLC, Sequences, FiniteSets
+PT == INSTANCE PT
 CONSTANTS Books, People, NumCopies
 ASSUME NumCopies \subseteq Nat
 set ++ x == set \union {x}
@@ -35,14 +36,14 @@ begin
             end with;
         or
             \* Reserve:
-            with b \in Books do
+            with b \in {b \in Books: self \notin PT! Range(reserves[b])} do
                 reserves[b] := Append(reserves[b], self);
             end with;
         end either;
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "83d1cfe8" /\ chksum(tla) = "26e9437e")
+\* BEGIN TRANSLATION (chksum(pcal) = "23e45b07" /\ chksum(tla) = "e40996cd")
 VARIABLES library, reserves, wants, pc
 
 (* define statement *)
@@ -75,7 +76,7 @@ Person(self) == /\ pc[self] = "Person"
                            /\ library' = [library EXCEPT ![b] = library[b] + 1]
                            /\ books' = [books EXCEPT ![self] = books[self] -- b]
                       /\ UNCHANGED <<reserves, wants>>
-                   \/ /\ \E b \in Books:
+                   \/ /\ \E b \in {b \in Books: self \notin PT! Range(reserves[b])}:
                            reserves' = [reserves EXCEPT ![b] = Append(reserves[b], self)]
                       /\ UNCHANGED <<library, wants, books>>
                 /\ pc' = [pc EXCEPT ![self] = "Person"]
@@ -108,5 +109,5 @@ TypeInvariant ==
 Liveness == /\ <>(\A p \in People: wants[p] = {})
 =============================================================================
 \* Modification History
-\* Last modified Sat Nov 09 22:03:30 GMT 2024 by frankeg
+\* Last modified Sat Nov 09 22:07:36 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
