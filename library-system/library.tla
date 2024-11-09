@@ -27,6 +27,9 @@ begin
                 library[b] := library[b] - 1;
                 books := books ++ b;
                 wants := wants -- b;
+                if reserves[b] /= <<>> /\ self = Head(reserves[b]) then
+                    reserves[b] := Tail(reserves[b]);
+                end if;
             end with;
         or
             \* Return
@@ -43,7 +46,7 @@ begin
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "23e45b07" /\ chksum(tla) = "e40996cd")
+\* BEGIN TRANSLATION (chksum(pcal) = "8e1d9f19" /\ chksum(tla) = "adfa8d93")
 VARIABLES library, reserves, wants, pc
 
 (* define statement *)
@@ -71,7 +74,10 @@ Person(self) == /\ pc[self] = "Person"
                            /\ library' = [library EXCEPT ![b] = library[b] - 1]
                            /\ books' = [books EXCEPT ![self] = books[self] ++ b]
                            /\ wants' = wants -- b
-                      /\ UNCHANGED reserves
+                           /\ IF reserves[b] /= <<>> /\ self = Head(reserves[b])
+                                 THEN /\ reserves' = [reserves EXCEPT ![b] = Tail(reserves[b])]
+                                 ELSE /\ TRUE
+                                      /\ UNCHANGED reserves
                    \/ /\ \E b \in books[self]:
                            /\ library' = [library EXCEPT ![b] = library[b] + 1]
                            /\ books' = [books EXCEPT ![self] = books[self] -- b]
@@ -109,5 +115,5 @@ TypeInvariant ==
 Liveness == /\ <>(\A p \in People: wants[p] = {})
 =============================================================================
 \* Modification History
-\* Last modified Sat Nov 09 22:07:36 GMT 2024 by frankeg
+\* Last modified Sat Nov 09 22:14:37 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
