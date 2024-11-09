@@ -11,7 +11,9 @@ variables
     wants \in SUBSET Books;
 define 
     AvailableBooks == {b \in Books: library[b] > 0}
-    BorrowableBooks(p) == {b \in AvailableBooks: reserves[b] = {} \/ p \in reserves[b]}
+    BorrowableBooks(p) == {b \in AvailableBooks: 
+        \/ reserves[b] = <<>>
+        \/ p = Head(reserves[b])}
 end define;
 fair process person \in People
 variables
@@ -34,18 +36,20 @@ begin
         or
             \* Reserve:
             with b \in Books do
-                reserves[b] := reserves[b] ++ self;
+                reserves[b] := Append(reserves[b], self);
             end with;
         end either;
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "91398d0e" /\ chksum(tla) = "1d777cde")
+\* BEGIN TRANSLATION (chksum(pcal) = "83d1cfe8" /\ chksum(tla) = "26e9437e")
 VARIABLES library, reserves, wants, pc
 
 (* define statement *)
 AvailableBooks == {b \in Books: library[b] > 0}
-BorrowableBooks(p) == {b \in AvailableBooks: reserves[b] = {} \/ p \in reserves[b]}
+BorrowableBooks(p) == {b \in AvailableBooks:
+    \/ reserves[b] = <<>>
+    \/ p = Head(reserves[b])}
 
 VARIABLE books
 
@@ -72,7 +76,7 @@ Person(self) == /\ pc[self] = "Person"
                            /\ books' = [books EXCEPT ![self] = books[self] -- b]
                       /\ UNCHANGED <<reserves, wants>>
                    \/ /\ \E b \in Books:
-                           reserves' = [reserves EXCEPT ![b] = reserves[b] ++ self]
+                           reserves' = [reserves EXCEPT ![b] = Append(reserves[b], self)]
                       /\ UNCHANGED <<library, wants, books>>
                 /\ pc' = [pc EXCEPT ![self] = "Person"]
 
@@ -91,12 +95,18 @@ Spec == /\ Init /\ [][Next]_vars
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
+    NoDuplicateReservations ==
+        \A b \in Books:
+            \A i, j \in 1..Len(reserves[b]):
+                i /= j => reserves[b][i] /= reserves[b][j]
 TypeInvariant ==
     /\ library \in [Books -> NumCopies ++ 0]
     /\ books \in [People -> SUBSET books]
     /\ wants \in [People -> SUBSET Books]
+    /\ reserves \in [Books -> Seq(People)]
+    /\ NoDuplicateReservations
 Liveness == /\ <>(\A p \in People: wants[p] = {})
 =============================================================================
 \* Modification History
-\* Last modified Sat Nov 09 21:43:25 GMT 2024 by frankeg
+\* Last modified Sat Nov 09 22:03:30 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
