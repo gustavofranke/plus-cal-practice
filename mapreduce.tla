@@ -30,6 +30,8 @@ process worker \in Workers
 variables
     total = 0;
 begin
+    WaitForQueue:
+        await queue[self] /= <<>>;
     Process:
         while queue[self] /= <<>> do
             total := total + Head(queue[self]);
@@ -39,7 +41,7 @@ begin
         result[self] :=  total;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "71a17222" /\ chksum(tla) = "64ec7d2e")
+\* BEGIN TRANSLATION (chksum(pcal) = "9f52ad73" /\ chksum(tla) = "1fb52e27")
 VARIABLES input, result, queue, pc, final, consumed, total
 
 vars == << input, result, queue, pc, final, consumed, total >>
@@ -56,7 +58,7 @@ Init == (* Global variables *)
         (* Process worker *)
         /\ total = [self \in Workers |-> 0]
         /\ pc = [self \in ProcSet |-> CASE self = Reducer -> "Schedule"
-                                        [] self \in Workers -> "Process"]
+                                        [] self \in Workers -> "WaitForQueue"]
 
 Schedule == /\ pc[Reducer] = "Schedule"
             /\ TRUE
@@ -81,6 +83,12 @@ Finish == /\ pc[Reducer] = "Finish"
 
 reducer == Schedule \/ ReduceResult \/ Finish
 
+WaitForQueue(self) == /\ pc[self] = "WaitForQueue"
+                      /\ queue[self] /= <<>>
+                      /\ pc' = [pc EXCEPT ![self] = "Process"]
+                      /\ UNCHANGED << input, result, queue, final, consumed, 
+                                      total >>
+
 Process(self) == /\ pc[self] = "Process"
                  /\ IF queue[self] /= <<>>
                        THEN /\ total' = [total EXCEPT ![self] = total[self] + Head(queue[self])]
@@ -95,7 +103,7 @@ Result(self) == /\ pc[self] = "Result"
                 /\ pc' = [pc EXCEPT ![self] = "Done"]
                 /\ UNCHANGED << input, queue, final, consumed, total >>
 
-worker(self) == Process(self) \/ Result(self)
+worker(self) == WaitForQueue(self) \/ Process(self) \/ Result(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
@@ -113,5 +121,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 ====
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 14:36:35 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 14:49:46 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
