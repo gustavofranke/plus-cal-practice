@@ -15,6 +15,13 @@ variables
     result = [w \in Workers |-> NULL],
     queue = [w \in Workers |-> <<>>]; \* for testing
 
+macro reduce() begin
+    with w \in { w \in Workers: ~consumed[w] /\ result[w] /= NULL} do
+        final := final + result[w];
+        consumed[w] := TRUE;
+    end with;
+end macro;
+
 procedure work()
     variables total = 0;
     begin
@@ -44,10 +51,7 @@ begin
         end with;
     ReduceResult:
         while \E w \in Workers: ~consumed[w] do
-            with w \in {w \in Workers: ~consumed[w] /\ result[w] /= NULL} do
-                final := final + result[w];
-                consumed[w] := TRUE;
-            end with;
+            reduce();
         end while;
     Finish:
         \* Doesn’t check that the spec gets the right answer.
@@ -79,7 +83,7 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "50a0464a" /\ chksum(tla) = "c027a000")
+\* BEGIN TRANSLATION (chksum(pcal) = "50a0464a" /\ chksum(tla) = "7b9aec3f")
 VARIABLES input, result, queue, pc, stack, total, final, consumed
 
 vars == << input, result, queue, pc, stack, total, final, consumed >>
@@ -135,7 +139,7 @@ Schedule == /\ pc[Reducer] = "Schedule"
 
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
                 /\ IF \E w \in Workers: ~consumed[w]
-                      THEN /\ \E w \in {w \in Workers: ~consumed[w] /\ result[w] /= NULL}:
+                      THEN /\ \E w \in { w \in Workers: ~consumed[w] /\ result[w] /= NULL}:
                                 /\ final' = final + result[w]
                                 /\ consumed' = [consumed EXCEPT ![w] = TRUE]
                            /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
@@ -145,7 +149,7 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 55, column 9.")
+                    "Failure of assertion at line 59, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
           /\ UNCHANGED << input, result, queue, stack, total, final, consumed >>
 
@@ -192,5 +196,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](final = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 15:52:52 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 16:08:34 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
