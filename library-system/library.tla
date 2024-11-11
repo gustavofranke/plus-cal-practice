@@ -124,13 +124,18 @@ TypeInvariant ==
     /\ wants \in [People -> SUBSET Books]
     /\ reserves \in [Books -> Seq(People)]
     /\ NoDuplicateReservations
+
+NextInLineFor(p, b) ==
+    /\ reserves[b] /= <<>>
+    /\ p = Head(reserves[b])
+
 Liveness ==
     \A p \in People:
         \A b \in Books:
             b \in wants[p] ~>
                 \/ b \notin wants[p]
-                \/ p = Head(reserves[b])
+                \/ NextInLineFor(p, b)
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 10:23:59 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 10:27:28 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
