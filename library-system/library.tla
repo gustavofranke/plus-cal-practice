@@ -127,8 +127,10 @@ TypeInvariant ==
 Liveness ==
     \A p \in People:
         \A b \in Books:
-            b \in wants[p] ~> b \notin wants[p]
+            b \in wants[p] ~>
+                \/ b \notin wants[p]
+                \/ p = Head(reserves[b])
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 10:17:31 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 10:23:59 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
