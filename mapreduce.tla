@@ -59,8 +59,8 @@ begin
                 with from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w] = NULL},
                      to_worker \in FairWorkers do
                     \* REASSIGN LOGIC
-                    \* how does it know what to move?
-                    \* And how does it move it?
+                    consumed[from_worker] := TRUE ||
+                    consumed[to_worker] := FALSE;
                     skip;
                 end with;   
             end either; 
@@ -81,7 +81,7 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "add64163" /\ chksum(tla) = "b270c200")
+\* BEGIN TRANSLATION (chksum(pcal) = "e3b84f9b" /\ chksum(tla) = "f575d783")
 VARIABLES input, result, queue, pc, stack, total, final, consumed
 
 vars == << input, result, queue, pc, stack, total, final, consumed >>
@@ -142,8 +142,10 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
                                       /\ consumed' = [consumed EXCEPT ![w] = TRUE]
                               \/ /\ \E from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w] = NULL}:
                                       \E to_worker \in FairWorkers:
-                                        TRUE
-                                 /\ UNCHANGED <<final, consumed>>
+                                        /\ consumed' = [consumed EXCEPT ![from_worker] = TRUE,
+                                                                        ![to_worker] = FALSE]
+                                        /\ TRUE
+                                 /\ final' = final
                            /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
                       ELSE /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
                            /\ UNCHANGED << final, consumed >>
@@ -198,5 +200,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](final = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 16:14:52 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 16:18:50 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
