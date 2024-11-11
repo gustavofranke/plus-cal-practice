@@ -15,7 +15,12 @@ variables
     consumed = [w \in Workers |-> FALSE];
 begin
     Schedule:
-        skip;
+        with worker_order = PT!OrderSet(Workers) do
+            queue := [w \in Workers |->
+                LET offset == PT!Index(worker_order, w) - 1 \* sequence start at 1
+                IN PT!SelectSeqByIndex(input, LAMBDA i: i % Len(worker_order) = offset)
+                ];
+        end with;
     ReduceResult:
         while \E w \in Workers: ~consumed[w] do
             with w \in {w \in Workers: ~consumed[w] /\ result[w] /= NULL} do
@@ -41,7 +46,7 @@ begin
         result[self] :=  total;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "9f52ad73" /\ chksum(tla) = "1fb52e27")
+\* BEGIN TRANSLATION (chksum(pcal) = "39a148b9" /\ chksum(tla) = "736f7601")
 VARIABLES input, result, queue, pc, final, consumed, total
 
 vars == << input, result, queue, pc, final, consumed, total >>
@@ -61,9 +66,13 @@ Init == (* Global variables *)
                                         [] self \in Workers -> "WaitForQueue"]
 
 Schedule == /\ pc[Reducer] = "Schedule"
-            /\ TRUE
+            /\ LET worker_order == PT!OrderSet(Workers) IN
+                 queue' =      [w \in Workers |->
+                          LET offset == PT!Index(worker_order, w) - 1
+                          IN PT!SelectSeqByIndex(input, LAMBDA i: i % Len(worker_order) = offset)
+                          ]
             /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
-            /\ UNCHANGED << input, result, queue, final, consumed, total >>
+            /\ UNCHANGED << input, result, final, consumed, total >>
 
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
                 /\ IF \E w \in Workers: ~consumed[w]
@@ -77,7 +86,7 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 27, column 9.")
+                    "Failure of assertion at line 32, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
           /\ UNCHANGED << input, result, queue, final, consumed, total >>
 
@@ -121,5 +130,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 ====
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 14:49:46 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 15:08:58 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
