@@ -43,12 +43,17 @@ begin
                 with b \in {b \in Books: self \notin PT! Range(reserves[b])} do
                     reserves[b] := Append(reserves[b], self);
                 end with;
+            or
+                \* Want:
+                with b\in Books \ wants do
+                    wants := wants ++ b;
+                end with;
             end either;
         end while;
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "5fa42728" /\ chksum(tla) = "f812f65a")
+\* BEGIN TRANSLATION (chksum(pcal) = "c051bee3" /\ chksum(tla) = "7dee8f52")
 VARIABLES library, reserves, pc
 
 (* define statement *)
@@ -87,6 +92,9 @@ Person(self) == /\ pc[self] = "Person"
                    \/ /\ \E b \in {b \in Books: self \notin PT! Range(reserves[b])}:
                            reserves' = [reserves EXCEPT ![b] = Append(reserves[b], self)]
                       /\ UNCHANGED <<library, books, wants>>
+                   \/ /\ \E b \in Books \ wants[self]:
+                           wants' = [wants EXCEPT ![self] = wants[self] ++ b]
+                      /\ UNCHANGED <<library, reserves, books>>
                 /\ pc' = [pc EXCEPT ![self] = "Person"]
 
 person(self) == Person(self)
@@ -117,5 +125,5 @@ TypeInvariant ==
 Liveness == /\ <>(\A p \in People: wants[p] = {})
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 09:53:47 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 09:57:05 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
