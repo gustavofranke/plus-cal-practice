@@ -29,6 +29,8 @@ begin
             end with;
         end while;
     Finish:
+        \* Doesn’t check that the spec gets the right answer.
+        \* It checks that if it gets a final answer, then the answer is the right one.
         assert final = SumSeq(input);
 end process;
 process worker \in Workers
@@ -46,7 +48,7 @@ begin
         result[self] :=  total;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "d5fbcd19" /\ chksum(tla) = "552b326d")
+\* BEGIN TRANSLATION (chksum(pcal) = "d5fbcd19" /\ chksum(tla) = "14fbcfb")
 VARIABLES input, result, queue, pc, final, consumed, total
 
 vars == << input, result, queue, pc, final, consumed, total >>
@@ -86,7 +88,7 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 32, column 9.")
+                    "Failure of assertion at line 34, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
           /\ UNCHANGED << input, result, queue, final, consumed, total >>
 
@@ -127,8 +129,8 @@ Spec == Init /\ [][Next]_vars
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
-====
+Liveness == <>[](final = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 15:11:55 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 15:23:04 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
