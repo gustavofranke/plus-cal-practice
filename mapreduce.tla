@@ -7,10 +7,11 @@ SumSeq(seq) == PT!ReduceSeq(LAMBDA x, y: x + y, seq, 0)
 (*--algorithm mapreduce
 variables
     input \in PossibleInputs,
-    result = [w \in Workers |-> NULL];
+    result = [w \in Workers |-> NULL],
+    queue = [w \in Workers |-> <<1, 2>>]; \* for testing
 process reducer = Reducer
 variables
-    final = 0
+    final = 0,
     consumed = [w \in Workers |-> FALSE];
 begin
     Schedule:
@@ -26,50 +27,75 @@ begin
         assert final = SumSeq(input);
 end process;
 process worker \in Workers
+variables
+    total = 0;
 begin
-    Worker:
-        result[self] :=  5;
+    Process:
+        while queue[self] /= <<>> do
+            total := total + Head(queue[self]);
+            queue[self] := Tail(queue[self]);
+        end while;
+    Result:
+        result[self] :=  total;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "9ed4ea25" /\ chksum(tla) = "b8e4043c")
-VARIABLES input, result, pc, final
+\* BEGIN TRANSLATION (chksum(pcal) = "71a17222" /\ chksum(tla) = "64ec7d2e")
+VARIABLES input, result, queue, pc, final, consumed, total
 
-vars == << input, result, pc, final >>
+vars == << input, result, queue, pc, final, consumed, total >>
 
 ProcSet == {Reducer} \cup (Workers)
 
 Init == (* Global variables *)
         /\ input \in PossibleInputs
         /\ result = [w \in Workers |-> NULL]
+        /\ queue = [w \in Workers |-> <<1, 2>>]
         (* Process reducer *)
         /\ final = 0
+        /\ consumed = [w \in Workers |-> FALSE]
+        (* Process worker *)
+        /\ total = [self \in Workers |-> 0]
         /\ pc = [self \in ProcSet |-> CASE self = Reducer -> "Schedule"
-                                        [] self \in Workers -> "Worker"]
+                                        [] self \in Workers -> "Process"]
 
 Schedule == /\ pc[Reducer] = "Schedule"
             /\ TRUE
             /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
-            /\ UNCHANGED << input, result, final >>
+            /\ UNCHANGED << input, result, queue, final, consumed, total >>
 
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
-                /\ TRUE
-                /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
-                /\ UNCHANGED << input, result, final >>
+                /\ IF \E w \in Workers: ~consumed[w]
+                      THEN /\ \E w \in {w \in Workers: ~consumed[w] /\ result[w] /= NULL}:
+                                /\ final' = final + result[w]
+                                /\ consumed' = [consumed EXCEPT ![w] = TRUE]
+                           /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
+                      ELSE /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
+                           /\ UNCHANGED << final, consumed >>
+                /\ UNCHANGED << input, result, queue, total >>
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 19, column 9.")
+                    "Failure of assertion at line 27, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
-          /\ UNCHANGED << input, result, final >>
+          /\ UNCHANGED << input, result, queue, final, consumed, total >>
 
 reducer == Schedule \/ ReduceResult \/ Finish
 
-Worker(self) == /\ pc[self] = "Worker"
-                /\ result' = [result EXCEPT ![self] = 5]
-                /\ pc' = [pc EXCEPT ![self] = "Done"]
-                /\ UNCHANGED << input, final >>
+Process(self) == /\ pc[self] = "Process"
+                 /\ IF queue[self] /= <<>>
+                       THEN /\ total' = [total EXCEPT ![self] = total[self] + Head(queue[self])]
+                            /\ queue' = [queue EXCEPT ![self] = Tail(queue[self])]
+                            /\ pc' = [pc EXCEPT ![self] = "Process"]
+                       ELSE /\ pc' = [pc EXCEPT ![self] = "Result"]
+                            /\ UNCHANGED << queue, total >>
+                 /\ UNCHANGED << input, result, final, consumed >>
 
-worker(self) == Worker(self)
+Result(self) == /\ pc[self] = "Result"
+                /\ result' = [result EXCEPT ![self] = total[self]]
+                /\ pc' = [pc EXCEPT ![self] = "Done"]
+                /\ UNCHANGED << input, queue, final, consumed, total >>
+
+worker(self) == Process(self) \/ Result(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
@@ -87,5 +113,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 ====
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 14:25:51 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 14:36:35 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
