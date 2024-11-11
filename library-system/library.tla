@@ -45,15 +45,16 @@ begin
                 end with;
             or
                 \* Want:
-                with b\in Books \ wants do
-                    wants := wants ++ b;
+                await wants = {};
+                with b\in SUBSET books do
+                    wants := b;
                 end with;
             end either;
         end while;
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c051bee3" /\ chksum(tla) = "7dee8f52")
+\* BEGIN TRANSLATION (chksum(pcal) = "cfefdd40" /\ chksum(tla) = "b243683c")
 VARIABLES library, reserves, pc
 
 (* define statement *)
@@ -92,8 +93,9 @@ Person(self) == /\ pc[self] = "Person"
                    \/ /\ \E b \in {b \in Books: self \notin PT! Range(reserves[b])}:
                            reserves' = [reserves EXCEPT ![b] = Append(reserves[b], self)]
                       /\ UNCHANGED <<library, books, wants>>
-                   \/ /\ \E b \in Books \ wants[self]:
-                           wants' = [wants EXCEPT ![self] = wants[self] ++ b]
+                   \/ /\ wants[self] = {}
+                      /\ \E b \in SUBSET books[self]:
+                           wants' = [wants EXCEPT ![self] = b]
                       /\ UNCHANGED <<library, reserves, books>>
                 /\ pc' = [pc EXCEPT ![self] = "Person"]
 
@@ -122,8 +124,11 @@ TypeInvariant ==
     /\ wants \in [People -> SUBSET Books]
     /\ reserves \in [Books -> Seq(People)]
     /\ NoDuplicateReservations
-Liveness == /\ <>(\A p \in People: wants[p] = {})
+Liveness ==
+    \A p \in People:
+        \A b \in Books:
+            b \in wants[p] ~> b \notin wants[p]
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 09:57:05 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 10:17:31 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
