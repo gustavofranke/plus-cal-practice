@@ -5,7 +5,9 @@ CONSTANTS Workers, Reducer, NULL
 PossibleInputs == PT!TupleOf(0..2, 4)
 SumSeq(seq) == PT!ReduceSeq(LAMBDA x, y: x + y, seq, 0)
 (*--algorithm mapreduce
-variables input \in PossibleInputs;
+variables
+    input \in PossibleInputs,
+    result = [w \in Workers |-> NULL];
 process reducer = Reducer
 variables final = 0;
 begin
@@ -19,18 +21,19 @@ end process;
 process worker \in Workers
 begin
     Worker:
-        skip;
+        result[self] :=  5;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "6f344a4a" /\ chksum(tla) = "8339ca44")
-VARIABLES input, pc, final
+\* BEGIN TRANSLATION (chksum(pcal) = "9ed4ea25" /\ chksum(tla) = "b8e4043c")
+VARIABLES input, result, pc, final
 
-vars == << input, pc, final >>
+vars == << input, result, pc, final >>
 
 ProcSet == {Reducer} \cup (Workers)
 
 Init == (* Global variables *)
         /\ input \in PossibleInputs
+        /\ result = [w \in Workers |-> NULL]
         (* Process reducer *)
         /\ final = 0
         /\ pc = [self \in ProcSet |-> CASE self = Reducer -> "Schedule"
@@ -39,23 +42,23 @@ Init == (* Global variables *)
 Schedule == /\ pc[Reducer] = "Schedule"
             /\ TRUE
             /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
-            /\ UNCHANGED << input, final >>
+            /\ UNCHANGED << input, result, final >>
 
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
                 /\ TRUE
                 /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
-                /\ UNCHANGED << input, final >>
+                /\ UNCHANGED << input, result, final >>
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 17, column 9.")
+                    "Failure of assertion at line 19, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
-          /\ UNCHANGED << input, final >>
+          /\ UNCHANGED << input, result, final >>
 
 reducer == Schedule \/ ReduceResult \/ Finish
 
 Worker(self) == /\ pc[self] = "Worker"
-                /\ TRUE
+                /\ result' = [result EXCEPT ![self] = 5]
                 /\ pc' = [pc EXCEPT ![self] = "Done"]
                 /\ UNCHANGED << input, final >>
 
@@ -77,5 +80,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 ====
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 10:44:07 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 14:04:38 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
