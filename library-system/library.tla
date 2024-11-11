@@ -21,32 +21,34 @@ variables
     wants \in SUBSET Books;
 begin
     Person:
-        either
-            \* Checkout
-            with b \in BorrowableBooks(self) \ books do
-                library[b] := library[b] - 1;
-                books := books ++ b;
-                wants := wants -- b;
-                if reserves[b] /= <<>> /\ self = Head(reserves[b]) then
-                    reserves[b] := Tail(reserves[b]);
-                end if;
-            end with;
-        or
-            \* Return
-            with b \in books do
-                library[b] := library[b] + 1;
-                books := books -- b;
-            end with;
-        or
-            \* Reserve:
-            with b \in {b \in Books: self \notin PT! Range(reserves[b])} do
-                reserves[b] := Append(reserves[b], self);
-            end with;
-        end either;
+        while TRUE do
+            either
+                \* Checkout
+                with b \in (BorrowableBooks(self) \intersect wants) \ books do
+                    library[b] := library[b] - 1;
+                    books := books ++ b;
+                    wants := wants -- b;
+                    if reserves[b] /= <<>> /\ self = Head(reserves[b]) then
+                        reserves[b] := Tail(reserves[b]);
+                    end if;
+                end with;
+            or
+                \* Return
+                with b \in books do
+                    library[b] := library[b] + 1;
+                    books := books -- b;
+                end with;
+            or
+                \* Reserve:
+                with b \in {b \in Books: self \notin PT! Range(reserves[b])} do
+                    reserves[b] := Append(reserves[b], self);
+                end with;
+            end either;
+        end while;
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "94028323" /\ chksum(tla) = "6133f880")
+\* BEGIN TRANSLATION (chksum(pcal) = "5fa42728" /\ chksum(tla) = "f812f65a")
 VARIABLES library, reserves, pc
 
 (* define statement *)
@@ -70,7 +72,7 @@ Init == (* Global variables *)
         /\ pc = [self \in ProcSet |-> "Person"]
 
 Person(self) == /\ pc[self] = "Person"
-                /\ \/ /\ \E b \in BorrowableBooks(self) \ books[self]:
+                /\ \/ /\ \E b \in (BorrowableBooks(self) \intersect wants[self]) \ books[self]:
                            /\ library' = [library EXCEPT ![b] = library[b] - 1]
                            /\ books' = [books EXCEPT ![self] = books[self] ++ b]
                            /\ wants' = [wants EXCEPT ![self] = wants[self] -- b]
@@ -115,5 +117,5 @@ TypeInvariant ==
 Liveness == /\ <>(\A p \in People: wants[p] = {})
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 08:59:29 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 09:53:47 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
