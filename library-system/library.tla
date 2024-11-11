@@ -8,7 +8,7 @@ set -- x == set \ {x}
 (*--algorithm library
 variables
     library \in [Books -> NumCopies],
-    reserves = [b \in Books |-> {}];
+    reserves = [b \in Books |-> <<>>];
 define 
     AvailableBooks == {b \in Books: library[b] > 0}
     BorrowableBooks(p) == {b \in AvailableBooks: 
@@ -46,7 +46,7 @@ begin
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "3881b12a" /\ chksum(tla) = "581b8a8")
+\* BEGIN TRANSLATION (chksum(pcal) = "94028323" /\ chksum(tla) = "6133f880")
 VARIABLES library, reserves, pc
 
 (* define statement *)
@@ -63,7 +63,7 @@ ProcSet == (People)
 
 Init == (* Global variables *)
         /\ library \in [Books -> NumCopies]
-        /\ reserves = [b \in Books |-> {}]
+        /\ reserves = [b \in Books |-> <<>>]
         (* Process person *)
         /\ books = [self \in People |-> {}]
         /\ wants \in [People -> SUBSET Books]
@@ -115,5 +115,5 @@ TypeInvariant ==
 Liveness == /\ <>(\A p \in People: wants[p] = {})
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 08:54:12 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 08:59:29 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
