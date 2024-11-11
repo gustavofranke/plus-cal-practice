@@ -40,7 +40,8 @@ end procedure;
 process reducer = Reducer
 variables
     final = 0,
-    consumed = [w \in Workers |-> FALSE];
+    consumed = [w \in Workers |-> FALSE],
+    assignments = [w \in Workers |-> <<>>];
 begin
     Schedule:
         with worker_order = PT!OrderSet(Workers) do
@@ -48,6 +49,7 @@ begin
                 LET offset == PT!Index(worker_order, w) - 1 \* sequence start at 1
                 IN PT!SelectSeqByIndex(input, LAMBDA i: i % Len(worker_order) = offset)
                 ];
+            assignments := queue;
         end with;
     ReduceResult:
         while \E w \in Workers: ~consumed[w] do
@@ -59,6 +61,8 @@ begin
                 with from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w] = NULL},
                      to_worker \in FairWorkers do
                     \* REASSIGN LOGIC
+                    assignments[to_worker] := assignments[to_worker] \o assignments[from_worker];
+                    queue[to_worker] := queue[to_worker] \o assignments[from_worker];
                     consumed[from_worker] := TRUE ||
                     consumed[to_worker] := FALSE;
                     skip;
@@ -81,10 +85,12 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "e3b84f9b" /\ chksum(tla) = "f575d783")
-VARIABLES input, result, queue, pc, stack, total, final, consumed
+\* BEGIN TRANSLATION (chksum(pcal) = "6a529c5a" /\ chksum(tla) = "4526513d")
+VARIABLES input, result, queue, pc, stack, total, final, consumed, 
+          assignments
 
-vars == << input, result, queue, pc, stack, total, final, consumed >>
+vars == << input, result, queue, pc, stack, total, final, consumed, 
+           assignments >>
 
 ProcSet == {Reducer} \cup (FairWorkers) \cup (UnfairWorkers)
 
@@ -97,6 +103,7 @@ Init == (* Global variables *)
         (* Process reducer *)
         /\ final = 0
         /\ consumed = [w \in Workers |-> FALSE]
+        /\ assignments = [w \in Workers |-> <<>>]
         /\ stack = [self \in ProcSet |-> << >>]
         /\ pc = [self \in ProcSet |-> CASE self = Reducer -> "Schedule"
                                         [] self \in FairWorkers -> "FairWorker"
@@ -106,7 +113,7 @@ WaitForQueue(self) == /\ pc[self] = "WaitForQueue"
                       /\ queue[self] /= <<>>
                       /\ pc' = [pc EXCEPT ![self] = "Process"]
                       /\ UNCHANGED << input, result, queue, stack, total, 
-                                      final, consumed >>
+                                      final, consumed, assignments >>
 
 Process(self) == /\ pc[self] = "Process"
                  /\ IF queue[self] /= <<>>
@@ -115,23 +122,25 @@ Process(self) == /\ pc[self] = "Process"
                             /\ pc' = [pc EXCEPT ![self] = "Process"]
                        ELSE /\ pc' = [pc EXCEPT ![self] = "Result"]
                             /\ UNCHANGED << queue, total >>
-                 /\ UNCHANGED << input, result, stack, final, consumed >>
+                 /\ UNCHANGED << input, result, stack, final, consumed, 
+                                 assignments >>
 
 Result(self) == /\ pc[self] = "Result"
                 /\ result' = [result EXCEPT ![self] = total[self]]
                 /\ pc' = [pc EXCEPT ![self] = Head(stack[self]).pc]
                 /\ total' = [total EXCEPT ![self] = Head(stack[self]).total]
                 /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
-                /\ UNCHANGED << input, queue, final, consumed >>
+                /\ UNCHANGED << input, queue, final, consumed, assignments >>
 
 work(self) == WaitForQueue(self) \/ Process(self) \/ Result(self)
 
 Schedule == /\ pc[Reducer] = "Schedule"
             /\ LET worker_order == PT!OrderSet(Workers) IN
-                 queue' =      [w \in Workers |->
-                          LET offset == PT!Index(worker_order, w) - 1
-                          IN PT!SelectSeqByIndex(input, LAMBDA i: i % Len(worker_order) = offset)
-                          ]
+                 /\ queue' =      [w \in Workers |->
+                             LET offset == PT!Index(worker_order, w) - 1
+                             IN PT!SelectSeqByIndex(input, LAMBDA i: i % Len(worker_order) = offset)
+                             ]
+                 /\ assignments' = queue'
             /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
             /\ UNCHANGED << input, result, stack, total, final, consumed >>
 
@@ -140,22 +149,26 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
                       THEN /\ \/ /\ \E w \in { w \in Workers: ~consumed[w] /\ result[w] /= NULL}:
                                       /\ final' = final + result[w]
                                       /\ consumed' = [consumed EXCEPT ![w] = TRUE]
+                                 /\ UNCHANGED <<queue, assignments>>
                               \/ /\ \E from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w] = NULL}:
                                       \E to_worker \in FairWorkers:
+                                        /\ assignments' = [assignments EXCEPT ![to_worker] = assignments[to_worker] \o assignments[from_worker]]
+                                        /\ queue' = [queue EXCEPT ![to_worker] = queue[to_worker] \o assignments'[from_worker]]
                                         /\ consumed' = [consumed EXCEPT ![from_worker] = TRUE,
                                                                         ![to_worker] = FALSE]
                                         /\ TRUE
                                  /\ final' = final
                            /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
                       ELSE /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
-                           /\ UNCHANGED << final, consumed >>
-                /\ UNCHANGED << input, result, queue, stack, total >>
+                           /\ UNCHANGED << queue, final, consumed, assignments >>
+                /\ UNCHANGED << input, result, stack, total >>
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 71, column 9.")
+                    "Failure of assertion at line 75, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
-          /\ UNCHANGED << input, result, queue, stack, total, final, consumed >>
+          /\ UNCHANGED << input, result, queue, stack, total, final, consumed, 
+                          assignments >>
 
 reducer == Schedule \/ ReduceResult \/ Finish
 
@@ -166,7 +179,8 @@ FairWorker(self) == /\ pc[self] = "FairWorker"
                                                          \o stack[self]]
                     /\ total' = [total EXCEPT ![self] = 0]
                     /\ pc' = [pc EXCEPT ![self] = "WaitForQueue"]
-                    /\ UNCHANGED << input, result, queue, final, consumed >>
+                    /\ UNCHANGED << input, result, queue, final, consumed, 
+                                    assignments >>
 
 fair_workers(self) == FairWorker(self)
 
@@ -177,7 +191,8 @@ RegularWorker(self) == /\ pc[self] = "RegularWorker"
                                                             \o stack[self]]
                        /\ total' = [total EXCEPT ![self] = 0]
                        /\ pc' = [pc EXCEPT ![self] = "WaitForQueue"]
-                       /\ UNCHANGED << input, result, queue, final, consumed >>
+                       /\ UNCHANGED << input, result, queue, final, consumed, 
+                                       assignments >>
 
 worker(self) == RegularWorker(self)
 
@@ -200,5 +215,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](final = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 16:18:50 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 21:31:40 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
