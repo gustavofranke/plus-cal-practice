@@ -8,7 +8,7 @@ SumSeq(seq) == PT!ReduceSeq(LAMBDA x, y: x + y, seq, 0)
 variables
     input \in PossibleInputs,
     result = [w \in Workers |-> NULL],
-    queue = [w \in Workers |-> <<1, 2>>]; \* for testing
+    queue = [w \in Workers |-> <<>>]; \* for testing
 process reducer = Reducer
 variables
     final = 0,
@@ -46,7 +46,7 @@ begin
         result[self] :=  total;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "39a148b9" /\ chksum(tla) = "736f7601")
+\* BEGIN TRANSLATION (chksum(pcal) = "d5fbcd19" /\ chksum(tla) = "552b326d")
 VARIABLES input, result, queue, pc, final, consumed, total
 
 vars == << input, result, queue, pc, final, consumed, total >>
@@ -56,7 +56,7 @@ ProcSet == {Reducer} \cup (Workers)
 Init == (* Global variables *)
         /\ input \in PossibleInputs
         /\ result = [w \in Workers |-> NULL]
-        /\ queue = [w \in Workers |-> <<1, 2>>]
+        /\ queue = [w \in Workers |-> <<>>]
         (* Process reducer *)
         /\ final = 0
         /\ consumed = [w \in Workers |-> FALSE]
@@ -130,5 +130,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 ====
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 15:08:58 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 15:11:55 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
