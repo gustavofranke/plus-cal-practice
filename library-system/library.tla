@@ -40,7 +40,7 @@ begin
                 end with;
             or
                 \* Reserve:
-                with b \in {b \in Books: self \notin PT! Range(reserves[b])} do
+                with b \in {b \in wants: self \notin PT! Range(reserves[b])} do
                     reserves[b] := Append(reserves[b], self);
                 end with;
             or
@@ -61,7 +61,7 @@ begin
         goto Expire;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8e3cee87" /\ chksum(tla) = "5b149e66")
+\* BEGIN TRANSLATION (chksum(pcal) = "a3bebbe5" /\ chksum(tla) = "1c84594e")
 VARIABLES library, reserves, pc
 
 (* define statement *)
@@ -98,7 +98,7 @@ Person(self) == /\ pc[self] = "Person"
                            /\ library' = [library EXCEPT ![b] = library[b] + 1]
                            /\ books' = [books EXCEPT ![self] = books[self] -- b]
                       /\ UNCHANGED <<reserves, wants>>
-                   \/ /\ \E b \in {b \in Books: self \notin PT! Range(reserves[b])}:
+                   \/ /\ \E b \in {b \in wants[self]: self \notin PT! Range(reserves[b])}:
                            reserves' = [reserves EXCEPT ![b] = Append(reserves[b], self)]
                       /\ UNCHANGED <<library, books, wants>>
                    \/ /\ wants[self] = {}
@@ -155,5 +155,5 @@ Liveness ==
                 \/ NextInLineFor(p, b)
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 10:30:22 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 10:32:29 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
