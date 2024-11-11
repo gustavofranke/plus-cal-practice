@@ -18,9 +18,9 @@ variables
 macro reduce() begin
     with
         w \in { w \in Workers:
-            ~consumed[w] /\ result[w].count = Len(assignments[w])}
+            result[w].count = Len(assignments[w]) /\ ~consumed[w]}
     do
-        final := final + result[w].total;
+        final[w] := result[w].total;
         consumed[w] := TRUE;
     end with;
 end macro;
@@ -38,12 +38,12 @@ procedure work()
             end while;
         Result:
             result[self] := [total |-> total, count |-> count];
-            return;
+            goto WaitForQueue;
 end procedure;
 
-process reducer = Reducer
+fair process reducer = Reducer
 variables
-    final = 0,
+    final = [w \in Workers |-> 0],
     consumed = [w \in Workers |-> FALSE],
     assignments = [w \in Workers |-> <<>>];
 begin
@@ -62,21 +62,21 @@ begin
                 reduce();
             or
                 \* Reassign
-                with from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w].count /= Len(assignments[w])},
+                with from_worker \in {w \in UnfairWorkers: result[w].count /= Len(assignments[w]) /\ ~consumed[w]},
                      to_worker \in FairWorkers do
                     \* REASSIGN LOGIC
                     assignments[to_worker] := assignments[to_worker] \o assignments[from_worker];
                     queue[to_worker] := queue[to_worker] \o assignments[from_worker];
                     consumed[from_worker] := TRUE ||
                     consumed[to_worker] := FALSE;
-                    skip;
+                    final[to_worker] := 0;
                 end with;   
             end either; 
         end while;
     Finish:
         \* Doesn’t check that the spec gets the right answer.
         \* It checks that if it gets a final answer, then the answer is the right one.
-        assert final = SumSeq(input);
+        assert SumSeq(final) = SumSeq(input);
 end process;
 
 fair process fair_workers \in FairWorkers
@@ -89,7 +89,7 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1aa262c2" /\ chksum(tla) = "6ca8f428")
+\* BEGIN TRANSLATION (chksum(pcal) = "6ccf427c" /\ chksum(tla) = "2dd50096")
 VARIABLES input, result, queue, pc, stack, total, count, final, consumed, 
           assignments
 
@@ -106,7 +106,7 @@ Init == (* Global variables *)
         /\ total = [ self \in ProcSet |-> 0]
         /\ count = [ self \in ProcSet |-> 0]
         (* Process reducer *)
-        /\ final = 0
+        /\ final = [w \in Workers |-> 0]
         /\ consumed = [w \in Workers |-> FALSE]
         /\ assignments = [w \in Workers |-> <<>>]
         /\ stack = [self \in ProcSet |-> << >>]
@@ -133,11 +133,9 @@ Process(self) == /\ pc[self] = "Process"
 
 Result(self) == /\ pc[self] = "Result"
                 /\ result' = [result EXCEPT ![self] = [total |-> total[self], count |-> count[self]]]
-                /\ pc' = [pc EXCEPT ![self] = Head(stack[self]).pc]
-                /\ total' = [total EXCEPT ![self] = Head(stack[self]).total]
-                /\ count' = [count EXCEPT ![self] = Head(stack[self]).count]
-                /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
-                /\ UNCHANGED << input, queue, final, consumed, assignments >>
+                /\ pc' = [pc EXCEPT ![self] = "WaitForQueue"]
+                /\ UNCHANGED << input, queue, stack, total, count, final, 
+                                consumed, assignments >>
 
 work(self) == WaitForQueue(self) \/ Process(self) \/ Result(self)
 
@@ -155,25 +153,24 @@ Schedule == /\ pc[Reducer] = "Schedule"
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
                 /\ IF \E w \in Workers: ~consumed[w]
                       THEN /\ \/ /\ \E w \in   { w \in Workers:
-                                             ~consumed[w] /\ result[w].count = Len(assignments[w])}:
-                                      /\ final' = final + result[w].total
+                                             result[w].count = Len(assignments[w]) /\ ~consumed[w]}:
+                                      /\ final' = [final EXCEPT ![w] = result[w].total]
                                       /\ consumed' = [consumed EXCEPT ![w] = TRUE]
                                  /\ UNCHANGED <<queue, assignments>>
-                              \/ /\ \E from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w].count /= Len(assignments[w])}:
+                              \/ /\ \E from_worker \in {w \in UnfairWorkers: result[w].count /= Len(assignments[w]) /\ ~consumed[w]}:
                                       \E to_worker \in FairWorkers:
                                         /\ assignments' = [assignments EXCEPT ![to_worker] = assignments[to_worker] \o assignments[from_worker]]
                                         /\ queue' = [queue EXCEPT ![to_worker] = queue[to_worker] \o assignments'[from_worker]]
                                         /\ consumed' = [consumed EXCEPT ![from_worker] = TRUE,
                                                                         ![to_worker] = FALSE]
-                                        /\ TRUE
-                                 /\ final' = final
+                                        /\ final' = [final EXCEPT ![to_worker] = 0]
                            /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
                       ELSE /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
                            /\ UNCHANGED << queue, final, consumed, assignments >>
                 /\ UNCHANGED << input, result, stack, total, count >>
 
 Finish == /\ pc[Reducer] = "Finish"
-          /\ Assert(final = SumSeq(input), 
+          /\ Assert(SumSeq(final) = SumSeq(input), 
                     "Failure of assertion at line 79, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
           /\ UNCHANGED << input, result, queue, stack, total, count, final, 
@@ -220,13 +217,14 @@ Next == reducer
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
+        /\ WF_vars(reducer)
         /\ \A self \in FairWorkers : WF_vars(fair_workers(self)) /\ WF_vars(work(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
-Liveness == <>[](final = SumSeq(input))
+Liveness == <>[](SumSeq(final) = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 21:38:01 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 21:49:28 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
