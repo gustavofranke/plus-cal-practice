@@ -1,14 +1,35 @@
 ----------------------------- MODULE mapreduce -----------------------------
-EXTENDS TLC, Sequences, Integers
+
+EXTENDS TLC, Sequences, Integers, FiniteSets
 PT == INSTANCE PT
 CONSTANTS Workers, Reducer, NULL
+
 PossibleInputs == PT!TupleOf(0..2, 4)
 SumSeq(seq) == PT!ReduceSeq(LAMBDA x, y: x + y, seq, 0)
+FairWorkers == CHOOSE set_w \in SUBSET Workers: Cardinality(set_w) = 1
+UnfairWorkers == Workers \ FairWorkers
+
 (*--algorithm mapreduce
 variables
     input \in PossibleInputs,
     result = [w \in Workers |-> NULL],
     queue = [w \in Workers |-> <<>>]; \* for testing
+
+procedure work()
+    variables total = 0;
+    begin
+        WaitForQueue:
+            await queue[self] /= <<>>;
+        Process:
+            while queue[self] /= <<>> do
+                total := total + Head(queue[self]);
+                queue[self] := Tail(queue[self]);
+            end while;
+        Result:
+            result[self] := total;
+            return;
+end procedure;
+
 process reducer = Reducer
 variables
     final = 0,
@@ -33,39 +54,75 @@ begin
         \* It checks that if it gets a final answer, then the answer is the right one.
         assert final = SumSeq(input);
 end process;
-process worker \in Workers
-variables
-    total = 0;
-begin
-    WaitForQueue:
-        await queue[self] /= <<>>;
-    Process:
-        while queue[self] /= <<>> do
-            total := total + Head(queue[self]);
-            queue[self] := Tail(queue[self]);
-        end while;
-    Result:
-        result[self] :=  total;
+\*process worker \in Workers
+\*variables
+\*    total = 0;
+\*begin
+\*    WaitForQueue:
+\*        await queue[self] /= <<>>;
+\*    Process:
+\*        while queue[self] /= <<>> do
+\*            total := total + Head(queue[self]);
+\*            queue[self] := Tail(queue[self]);
+\*        end while;
+\*    Result:
+\*        result[self] :=  total;
+\*end process;
+
+fair process fair_workers \in FairWorkers
+begin FairWorker:
+    call work();
+end process;
+
+process worker \in UnfairWorkers
+begin RegularWorker:
+    call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "d5fbcd19" /\ chksum(tla) = "14fbcfb")
-VARIABLES input, result, queue, pc, final, consumed, total
+\* BEGIN TRANSLATION (chksum(pcal) = "50a0464a" /\ chksum(tla) = "c027a000")
+VARIABLES input, result, queue, pc, stack, total, final, consumed
 
-vars == << input, result, queue, pc, final, consumed, total >>
+vars == << input, result, queue, pc, stack, total, final, consumed >>
 
-ProcSet == {Reducer} \cup (Workers)
+ProcSet == {Reducer} \cup (FairWorkers) \cup (UnfairWorkers)
 
 Init == (* Global variables *)
         /\ input \in PossibleInputs
         /\ result = [w \in Workers |-> NULL]
         /\ queue = [w \in Workers |-> <<>>]
+        (* Procedure work *)
+        /\ total = [ self \in ProcSet |-> 0]
         (* Process reducer *)
         /\ final = 0
         /\ consumed = [w \in Workers |-> FALSE]
-        (* Process worker *)
-        /\ total = [self \in Workers |-> 0]
+        /\ stack = [self \in ProcSet |-> << >>]
         /\ pc = [self \in ProcSet |-> CASE self = Reducer -> "Schedule"
-                                        [] self \in Workers -> "WaitForQueue"]
+                                        [] self \in FairWorkers -> "FairWorker"
+                                        [] self \in UnfairWorkers -> "RegularWorker"]
+
+WaitForQueue(self) == /\ pc[self] = "WaitForQueue"
+                      /\ queue[self] /= <<>>
+                      /\ pc' = [pc EXCEPT ![self] = "Process"]
+                      /\ UNCHANGED << input, result, queue, stack, total, 
+                                      final, consumed >>
+
+Process(self) == /\ pc[self] = "Process"
+                 /\ IF queue[self] /= <<>>
+                       THEN /\ total' = [total EXCEPT ![self] = total[self] + Head(queue[self])]
+                            /\ queue' = [queue EXCEPT ![self] = Tail(queue[self])]
+                            /\ pc' = [pc EXCEPT ![self] = "Process"]
+                       ELSE /\ pc' = [pc EXCEPT ![self] = "Result"]
+                            /\ UNCHANGED << queue, total >>
+                 /\ UNCHANGED << input, result, stack, final, consumed >>
+
+Result(self) == /\ pc[self] = "Result"
+                /\ result' = [result EXCEPT ![self] = total[self]]
+                /\ pc' = [pc EXCEPT ![self] = Head(stack[self]).pc]
+                /\ total' = [total EXCEPT ![self] = Head(stack[self]).total]
+                /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
+                /\ UNCHANGED << input, queue, final, consumed >>
+
+work(self) == WaitForQueue(self) \/ Process(self) \/ Result(self)
 
 Schedule == /\ pc[Reducer] = "Schedule"
             /\ LET worker_order == PT!OrderSet(Workers) IN
@@ -74,7 +131,7 @@ Schedule == /\ pc[Reducer] = "Schedule"
                           IN PT!SelectSeqByIndex(input, LAMBDA i: i % Len(worker_order) = offset)
                           ]
             /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
-            /\ UNCHANGED << input, result, final, consumed, total >>
+            /\ UNCHANGED << input, result, stack, total, final, consumed >>
 
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
                 /\ IF \E w \in Workers: ~consumed[w]
@@ -84,47 +141,50 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
                            /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
                       ELSE /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
                            /\ UNCHANGED << final, consumed >>
-                /\ UNCHANGED << input, result, queue, total >>
+                /\ UNCHANGED << input, result, queue, stack, total >>
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 34, column 9.")
+                    "Failure of assertion at line 55, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
-          /\ UNCHANGED << input, result, queue, final, consumed, total >>
+          /\ UNCHANGED << input, result, queue, stack, total, final, consumed >>
 
 reducer == Schedule \/ ReduceResult \/ Finish
 
-WaitForQueue(self) == /\ pc[self] = "WaitForQueue"
-                      /\ queue[self] /= <<>>
-                      /\ pc' = [pc EXCEPT ![self] = "Process"]
-                      /\ UNCHANGED << input, result, queue, final, consumed, 
-                                      total >>
+FairWorker(self) == /\ pc[self] = "FairWorker"
+                    /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "work",
+                                                             pc        |->  "Done",
+                                                             total     |->  total[self] ] >>
+                                                         \o stack[self]]
+                    /\ total' = [total EXCEPT ![self] = 0]
+                    /\ pc' = [pc EXCEPT ![self] = "WaitForQueue"]
+                    /\ UNCHANGED << input, result, queue, final, consumed >>
 
-Process(self) == /\ pc[self] = "Process"
-                 /\ IF queue[self] /= <<>>
-                       THEN /\ total' = [total EXCEPT ![self] = total[self] + Head(queue[self])]
-                            /\ queue' = [queue EXCEPT ![self] = Tail(queue[self])]
-                            /\ pc' = [pc EXCEPT ![self] = "Process"]
-                       ELSE /\ pc' = [pc EXCEPT ![self] = "Result"]
-                            /\ UNCHANGED << queue, total >>
-                 /\ UNCHANGED << input, result, final, consumed >>
+fair_workers(self) == FairWorker(self)
 
-Result(self) == /\ pc[self] = "Result"
-                /\ result' = [result EXCEPT ![self] = total[self]]
-                /\ pc' = [pc EXCEPT ![self] = "Done"]
-                /\ UNCHANGED << input, queue, final, consumed, total >>
+RegularWorker(self) == /\ pc[self] = "RegularWorker"
+                       /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "work",
+                                                                pc        |->  "Done",
+                                                                total     |->  total[self] ] >>
+                                                            \o stack[self]]
+                       /\ total' = [total EXCEPT ![self] = 0]
+                       /\ pc' = [pc EXCEPT ![self] = "WaitForQueue"]
+                       /\ UNCHANGED << input, result, queue, final, consumed >>
 
-worker(self) == WaitForQueue(self) \/ Process(self) \/ Result(self)
+worker(self) == RegularWorker(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
                /\ UNCHANGED vars
 
 Next == reducer
-           \/ (\E self \in Workers: worker(self))
+           \/ (\E self \in ProcSet: work(self))
+           \/ (\E self \in FairWorkers: fair_workers(self))
+           \/ (\E self \in UnfairWorkers: worker(self))
            \/ Terminating
 
-Spec == Init /\ [][Next]_vars
+Spec == /\ Init /\ [][Next]_vars
+        /\ \A self \in FairWorkers : WF_vars(fair_workers(self)) /\ WF_vars(work(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
@@ -132,5 +192,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](final = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 15:23:04 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 15:52:52 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
