@@ -53,8 +53,15 @@ begin
         end while;
     goto Person;
 end process;
+fair process book_reservations \in Books
+begin
+    Expire:
+        await reserves[self] /= <<>>;
+        reserves[self] := Tail(reserves[self]);
+        goto Expire;
+end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "cfefdd40" /\ chksum(tla) = "b243683c")
+\* BEGIN TRANSLATION (chksum(pcal) = "8e3cee87" /\ chksum(tla) = "5b149e66")
 VARIABLES library, reserves, pc
 
 (* define statement *)
@@ -67,7 +74,7 @@ VARIABLES books, wants
 
 vars == << library, reserves, pc, books, wants >>
 
-ProcSet == (People)
+ProcSet == (People) \cup (Books)
 
 Init == (* Global variables *)
         /\ library \in [Books -> NumCopies]
@@ -75,7 +82,8 @@ Init == (* Global variables *)
         (* Process person *)
         /\ books = [self \in People |-> {}]
         /\ wants \in [People -> SUBSET Books]
-        /\ pc = [self \in ProcSet |-> "Person"]
+        /\ pc = [self \in ProcSet |-> CASE self \in People -> "Person"
+                                        [] self \in Books -> "Expire"]
 
 Person(self) == /\ pc[self] = "Person"
                 /\ \/ /\ \E b \in (BorrowableBooks(self) \intersect wants[self]) \ books[self]:
@@ -101,15 +109,25 @@ Person(self) == /\ pc[self] = "Person"
 
 person(self) == Person(self)
 
+Expire(self) == /\ pc[self] = "Expire"
+                /\ reserves[self] /= <<>>
+                /\ reserves' = [reserves EXCEPT ![self] = Tail(reserves[self])]
+                /\ pc' = [pc EXCEPT ![self] = "Expire"]
+                /\ UNCHANGED << library, books, wants >>
+
+book_reservations(self) == Expire(self)
+
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
                /\ UNCHANGED vars
 
 Next == (\E self \in People: person(self))
+           \/ (\E self \in Books: book_reservations(self))
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in People : WF_vars(person(self))
+        /\ \A self \in Books : WF_vars(book_reservations(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
@@ -137,5 +155,5 @@ Liveness ==
                 \/ NextInLineFor(p, b)
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 10:27:28 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 10:30:22 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
