@@ -51,27 +51,25 @@ begin
         end with;
     ReduceResult:
         while \E w \in Workers: ~consumed[w] do
-            reduce();
+            either
+                \* Reduce
+                reduce();
+            or
+                \* Reassign
+                with from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w] = NULL},
+                     to_worker \in FairWorkers do
+                    \* REASSIGN LOGIC
+                    \* how does it know what to move?
+                    \* And how does it move it?
+                    skip;
+                end with;   
+            end either; 
         end while;
     Finish:
         \* Doesn’t check that the spec gets the right answer.
         \* It checks that if it gets a final answer, then the answer is the right one.
         assert final = SumSeq(input);
 end process;
-\*process worker \in Workers
-\*variables
-\*    total = 0;
-\*begin
-\*    WaitForQueue:
-\*        await queue[self] /= <<>>;
-\*    Process:
-\*        while queue[self] /= <<>> do
-\*            total := total + Head(queue[self]);
-\*            queue[self] := Tail(queue[self]);
-\*        end while;
-\*    Result:
-\*        result[self] :=  total;
-\*end process;
 
 fair process fair_workers \in FairWorkers
 begin FairWorker:
@@ -83,7 +81,7 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "50a0464a" /\ chksum(tla) = "7b9aec3f")
+\* BEGIN TRANSLATION (chksum(pcal) = "add64163" /\ chksum(tla) = "b270c200")
 VARIABLES input, result, queue, pc, stack, total, final, consumed
 
 vars == << input, result, queue, pc, stack, total, final, consumed >>
@@ -139,9 +137,13 @@ Schedule == /\ pc[Reducer] = "Schedule"
 
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
                 /\ IF \E w \in Workers: ~consumed[w]
-                      THEN /\ \E w \in { w \in Workers: ~consumed[w] /\ result[w] /= NULL}:
-                                /\ final' = final + result[w]
-                                /\ consumed' = [consumed EXCEPT ![w] = TRUE]
+                      THEN /\ \/ /\ \E w \in { w \in Workers: ~consumed[w] /\ result[w] /= NULL}:
+                                      /\ final' = final + result[w]
+                                      /\ consumed' = [consumed EXCEPT ![w] = TRUE]
+                              \/ /\ \E from_worker \in {w \in UnfairWorkers: ~consumed[w] /\ result[w] = NULL}:
+                                      \E to_worker \in FairWorkers:
+                                        TRUE
+                                 /\ UNCHANGED <<final, consumed>>
                            /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
                       ELSE /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
                            /\ UNCHANGED << final, consumed >>
@@ -149,7 +151,7 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(final = SumSeq(input), 
-                    "Failure of assertion at line 59, column 9.")
+                    "Failure of assertion at line 71, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
           /\ UNCHANGED << input, result, queue, stack, total, final, consumed >>
 
@@ -196,5 +198,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](final = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 16:08:34 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 16:14:52 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
