@@ -9,7 +9,6 @@ set -- x == set \ {x}
 variables
     library \in [Books -> NumCopies],
     reserves = [b \in Books |-> {}];
-    wants \in SUBSET Books;
 define 
     AvailableBooks == {b \in Books: library[b] > 0}
     BorrowableBooks(p) == {b \in AvailableBooks: 
@@ -18,7 +17,8 @@ define
 end define;
 fair process person \in People
 variables
-    books = {};
+    books = {},
+    wants \in SUBSET Books;
 begin
     Person:
         either
@@ -46,8 +46,8 @@ begin
     goto Person;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8e1d9f19" /\ chksum(tla) = "adfa8d93")
-VARIABLES library, reserves, wants, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "3881b12a" /\ chksum(tla) = "581b8a8")
+VARIABLES library, reserves, pc
 
 (* define statement *)
 AvailableBooks == {b \in Books: library[b] > 0}
@@ -55,25 +55,25 @@ BorrowableBooks(p) == {b \in AvailableBooks:
     \/ reserves[b] = <<>>
     \/ p = Head(reserves[b])}
 
-VARIABLE books
+VARIABLES books, wants
 
-vars == << library, reserves, wants, pc, books >>
+vars == << library, reserves, pc, books, wants >>
 
 ProcSet == (People)
 
 Init == (* Global variables *)
         /\ library \in [Books -> NumCopies]
         /\ reserves = [b \in Books |-> {}]
-        /\ wants \in SUBSET Books
         (* Process person *)
         /\ books = [self \in People |-> {}]
+        /\ wants \in [People -> SUBSET Books]
         /\ pc = [self \in ProcSet |-> "Person"]
 
 Person(self) == /\ pc[self] = "Person"
                 /\ \/ /\ \E b \in BorrowableBooks(self) \ books[self]:
                            /\ library' = [library EXCEPT ![b] = library[b] - 1]
                            /\ books' = [books EXCEPT ![self] = books[self] ++ b]
-                           /\ wants' = wants -- b
+                           /\ wants' = [wants EXCEPT ![self] = wants[self] -- b]
                            /\ IF reserves[b] /= <<>> /\ self = Head(reserves[b])
                                  THEN /\ reserves' = [reserves EXCEPT ![b] = Tail(reserves[b])]
                                  ELSE /\ TRUE
@@ -84,7 +84,7 @@ Person(self) == /\ pc[self] = "Person"
                       /\ UNCHANGED <<reserves, wants>>
                    \/ /\ \E b \in {b \in Books: self \notin PT! Range(reserves[b])}:
                            reserves' = [reserves EXCEPT ![b] = Append(reserves[b], self)]
-                      /\ UNCHANGED <<library, wants, books>>
+                      /\ UNCHANGED <<library, books, wants>>
                 /\ pc' = [pc EXCEPT ![self] = "Person"]
 
 person(self) == Person(self)
@@ -115,5 +115,5 @@ TypeInvariant ==
 Liveness == /\ <>(\A p \in People: wants[p] = {})
 =============================================================================
 \* Modification History
-\* Last modified Sat Nov 09 22:14:37 GMT 2024 by frankeg
+\* Last modified Mon Nov 11 08:54:12 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
