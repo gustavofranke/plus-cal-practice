@@ -63,7 +63,7 @@ begin
             or
                 \* Reassign
                 with from_worker \in {w \in UnfairWorkers: result[w].count /= Len(assignments[w]) /\ ~consumed[w]},
-                     to_worker \in FairWorkers do
+                     to_worker \in Workers \ {from_worker} do
                     \* REASSIGN LOGIC
                     assignments[to_worker] := assignments[to_worker] \o assignments[from_worker];
                     queue[to_worker] := queue[to_worker] \o assignments[from_worker];
@@ -89,7 +89,7 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "6ccf427c" /\ chksum(tla) = "2dd50096")
+\* BEGIN TRANSLATION (chksum(pcal) = "f96e7adb" /\ chksum(tla) = "49dc6b10")
 VARIABLES input, result, queue, pc, stack, total, count, final, consumed, 
           assignments
 
@@ -158,7 +158,7 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
                                       /\ consumed' = [consumed EXCEPT ![w] = TRUE]
                                  /\ UNCHANGED <<queue, assignments>>
                               \/ /\ \E from_worker \in {w \in UnfairWorkers: result[w].count /= Len(assignments[w]) /\ ~consumed[w]}:
-                                      \E to_worker \in FairWorkers:
+                                      \E to_worker \in Workers \ {from_worker}:
                                         /\ assignments' = [assignments EXCEPT ![to_worker] = assignments[to_worker] \o assignments[from_worker]]
                                         /\ queue' = [queue EXCEPT ![to_worker] = queue[to_worker] \o assignments'[from_worker]]
                                         /\ consumed' = [consumed EXCEPT ![from_worker] = TRUE,
@@ -226,5 +226,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](SumSeq(final) = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 21:49:28 GMT 2024 by frankeg
+\* Last modified Tue Nov 12 09:47:28 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
