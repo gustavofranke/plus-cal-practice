@@ -31,7 +31,7 @@ define
 end define;
 macro reduce() begin
     with
-        w \in { w \in Workers:
+        w \in { w \in ActiveWorkers:
             result[w].count = Len(assignments[w])}
     do
         final[w] := result[w].total;
@@ -102,7 +102,7 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "b39be1c8" /\ chksum(tla) = "9e87d885")
+\* BEGIN TRANSLATION (chksum(pcal) = "805826b4" /\ chksum(tla) = "bf23531e")
 VARIABLES input, result, queue, status, pc, stack
 
 (* define statement *)
@@ -176,7 +176,7 @@ Schedule == /\ pc[Reducer] = "Schedule"
 
 ReduceResult == /\ pc[Reducer] = "ReduceResult"
                 /\ IF ActiveWorkers /= {}
-                      THEN /\ \/ /\ \E w \in   { w \in Workers:
+                      THEN /\ \/ /\ \E w \in   { w \in ActiveWorkers:
                                              result[w].count = Len(assignments[w])}:
                                       /\ final' = [final EXCEPT ![w] = result[w].total]
                                       /\ status' = [status EXCEPT ![w] = "inactive"]
@@ -250,5 +250,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](SumSeq(final) = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Tue Nov 12 13:43:09 GMT 2024 by frankeg
+\* Last modified Tue Nov 12 13:49:19 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
