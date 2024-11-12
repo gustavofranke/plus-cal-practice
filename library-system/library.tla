@@ -40,18 +40,17 @@ begin
                 end with;
             or
                 \* Reserve:
-                with b \in {b \in wants: self \notin PT! Range(reserves[b])} do
+                with b \in {b \in wants: self \notin PT!Range(reserves[b])} do
                     reserves[b] := Append(reserves[b], self);
                 end with;
             or
                 \* Want:
                 await wants = {};
-                with b\in SUBSET books do
+                with b \in SUBSET books do
                     wants := b;
                 end with;
             end either;
         end while;
-    goto Person;
 end process;
 fair process book_reservations \in Books
 begin
@@ -61,7 +60,7 @@ begin
         goto Expire;
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "a3bebbe5" /\ chksum(tla) = "1c84594e")
+\* BEGIN TRANSLATION (chksum(pcal) = "dd155c10" /\ chksum(tla) = "df17c32")
 VARIABLES library, reserves, pc
 
 (* define statement *)
@@ -98,7 +97,7 @@ Person(self) == /\ pc[self] = "Person"
                            /\ library' = [library EXCEPT ![b] = library[b] + 1]
                            /\ books' = [books EXCEPT ![self] = books[self] -- b]
                       /\ UNCHANGED <<reserves, wants>>
-                   \/ /\ \E b \in {b \in wants[self]: self \notin PT! Range(reserves[b])}:
+                   \/ /\ \E b \in {b \in wants[self]: self \notin PT!Range(reserves[b])}:
                            reserves' = [reserves EXCEPT ![b] = Append(reserves[b], self)]
                       /\ UNCHANGED <<library, books, wants>>
                    \/ /\ wants[self] = {}
@@ -117,19 +116,12 @@ Expire(self) == /\ pc[self] = "Expire"
 
 book_reservations(self) == Expire(self)
 
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
-               /\ UNCHANGED vars
-
 Next == (\E self \in People: person(self))
            \/ (\E self \in Books: book_reservations(self))
-           \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in People : WF_vars(person(self))
         /\ \A self \in Books : WF_vars(book_reservations(self))
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION 
     NoDuplicateReservations ==
@@ -155,5 +147,5 @@ Liveness ==
                 \/ NextInLineFor(p, b)
 =============================================================================
 \* Modification History
-\* Last modified Mon Nov 11 10:32:29 GMT 2024 by frankeg
+\* Last modified Tue Nov 12 21:17:59 GMT 2024 by frankeg
 \* Created Fri Nov 08 21:24:01 GMT 2024 by frankeg
