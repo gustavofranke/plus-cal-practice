@@ -2,9 +2,11 @@
 
 EXTENDS TLC, Sequences, Integers, FiniteSets
 PT == INSTANCE PT
-CONSTANTS Workers, Reducer, NULL
+CONSTANTS Workers, Reducer, NULL, ItemRange, ItemCount
+ASSUME ItemRange \subseteq Nat
+ASSUME ItemCount \in Nat
+PossibleInputs == PT!TupleOf(ItemRange, ItemCount)
 
-PossibleInputs == PT!TupleOf(0..2, 4)
 SumSeq(seq) == PT!ReduceSeq(LAMBDA x, y: x + y, seq, 0)
 FairWorkers == CHOOSE set_w \in SUBSET Workers: Cardinality(set_w) = 1
 UnfairWorkers == Workers \ FairWorkers
@@ -15,6 +17,14 @@ variables
     result = [w \in Workers |-> [total |-> NULL, count |-> NULL]],
     queue = [w \in Workers |-> <<>>]; \* for testing
 
+define
+    TypeInvariant ==
+        /\ \A w \in Workers:
+            /\ Len(queue[w]) <= ItemCount
+            /\ \A item \in 1..Len(queue[w]): queue[w][item] \in ItemRange
+            /\ \/ result[w].total = NULL \/ result[w].total <= SumSeq(input)
+            /\ \/ result[w].count = NULL \/ result[w].count <= ItemCount
+end define;
 macro reduce() begin
     with
         w \in { w \in Workers:
@@ -89,9 +99,18 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "f96e7adb" /\ chksum(tla) = "49dc6b10")
-VARIABLES input, result, queue, pc, stack, total, count, final, consumed, 
-          assignments
+\* BEGIN TRANSLATION (chksum(pcal) = "32cd492c" /\ chksum(tla) = "434d777c")
+VARIABLES input, result, queue, pc, stack
+
+(* define statement *)
+TypeInvariant ==
+    /\ \A w \in Workers:
+        /\ Len(queue[w]) <= ItemCount
+        /\ \A item \in 1..Len(queue[w]): queue[w][item] \in ItemRange
+        /\ \/ result[w].total = NULL \/ result[w].total <= SumSeq(input)
+        /\ \/ result[w].count = NULL \/ result[w].count <= ItemCount
+
+VARIABLES total, count, final, consumed, assignments
 
 vars == << input, result, queue, pc, stack, total, count, final, consumed, 
            assignments >>
@@ -171,7 +190,7 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(SumSeq(final) = SumSeq(input), 
-                    "Failure of assertion at line 79, column 9.")
+                    "Failure of assertion at line 89, column 9.")
           /\ pc' = [pc EXCEPT ![Reducer] = "Done"]
           /\ UNCHANGED << input, result, queue, stack, total, count, final, 
                           consumed, assignments >>
@@ -226,5 +245,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](SumSeq(final) = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Tue Nov 12 09:47:28 GMT 2024 by frankeg
+\* Last modified Tue Nov 12 13:19:31 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
