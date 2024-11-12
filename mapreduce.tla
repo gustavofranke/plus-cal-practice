@@ -35,7 +35,7 @@ macro reduce() begin
             result[w].count = Len(assignments[w]) /\ ~consumed[w]}
     do
         final[w] := result[w].total;
-        consumed[w] := TRUE;
+        status[w] := "inactive";
     end with;
 end macro;
 
@@ -103,7 +103,7 @@ begin RegularWorker:
     call work();
 end process;
 end algorithm; *)
-\* BEGIN TRANSLATION (chksum(pcal) = "1c0c2739" /\ chksum(tla) = "f3b00d5d")
+\* BEGIN TRANSLATION (chksum(pcal) = "688eaca9" /\ chksum(tla) = "547db94e")
 VARIABLES input, result, queue, status, pc, stack
 
 (* define statement *)
@@ -183,8 +183,8 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
                       THEN /\ \/ /\ \E w \in   { w \in Workers:
                                              result[w].count = Len(assignments[w]) /\ ~consumed[w]}:
                                       /\ final' = [final EXCEPT ![w] = result[w].total]
-                                      /\ consumed' = [consumed EXCEPT ![w] = TRUE]
-                                 /\ UNCHANGED <<queue, assignments>>
+                                      /\ status' = [status EXCEPT ![w] = "inactive"]
+                                 /\ UNCHANGED <<queue, consumed, assignments>>
                               \/ /\ \E from_worker \in {w \in UnfairWorkers: result[w].count /= Len(assignments[w]) /\ ~consumed[w]}:
                                       \E to_worker \in Workers \ {from_worker}:
                                         /\ assignments' = [assignments EXCEPT ![to_worker] = assignments[to_worker] \o assignments[from_worker]]
@@ -192,10 +192,12 @@ ReduceResult == /\ pc[Reducer] = "ReduceResult"
                                         /\ consumed' = [consumed EXCEPT ![from_worker] = TRUE,
                                                                         ![to_worker] = FALSE]
                                         /\ final' = [final EXCEPT ![to_worker] = 0]
+                                 /\ UNCHANGED status
                            /\ pc' = [pc EXCEPT ![Reducer] = "ReduceResult"]
                       ELSE /\ pc' = [pc EXCEPT ![Reducer] = "Finish"]
-                           /\ UNCHANGED << queue, final, consumed, assignments >>
-                /\ UNCHANGED << input, result, status, stack, total, count >>
+                           /\ UNCHANGED << queue, status, final, consumed, 
+                                           assignments >>
+                /\ UNCHANGED << input, result, stack, total, count >>
 
 Finish == /\ pc[Reducer] = "Finish"
           /\ Assert(SumSeq(final) = SumSeq(input), 
@@ -254,5 +256,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 Liveness == <>[](SumSeq(final) = SumSeq(input))
 =============================================================================
 \* Modification History
-\* Last modified Tue Nov 12 13:35:31 GMT 2024 by frankeg
+\* Last modified Tue Nov 12 13:37:42 GMT 2024 by frankeg
 \* Created Mon Nov 11 10:41:54 GMT 2024 by frankeg
