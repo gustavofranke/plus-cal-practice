@@ -105,9 +105,49 @@ E19 == {1, 2} \ {1, 3}
 (******************* Predicate Logic *******************)
 \* By combining propositional logic and set theory, we get predicate logic
 \* Predicates extend propositons with two logical statements, called quantifiers
-(******************* Evaluating Predicates in TLA+ *******************)
 
+\* ∃ b ∈ Bool : b ∨ b is true, since T ∨ T is true.
+E20 == \E b \in BOOLEAN : b \/ b
+\* TRUE
+
+\* ∀ b ∈ Bool : b ∨ b is false, since F ∨ F is false.
+E21 == \A b \in BOOLEAN : b \/ b
+\* FALSE
+
+\* ∃ b ∈ Bool : b ∨ ¬ b is true, since T ∨ ¬ T is true.
+E22 == \E b \in BOOLEAN : b \/ ~b
+\* TRUE
+
+\* ∀ b ∈ Bool : b ∨ ¬ b is true, since it’s true for all (two) elements of Bool.
+E23 == \A b \in BOOLEAN : b \/ ~b
+\* TRUE
+
+\* ∃ b ∈ Bool : b ∧ ¬ b is false, since it’s false for both T and F.
+E24 == \E b \in BOOLEAN : b /\ ~b
+\* FALSE
+
+\* ∀ b ∈ Bool : b ∧ ¬ b is false, because it’s not true for at least one element.
+E25 == \A b \in BOOLEAN : b /\ ~b
+\* FALSE
+
+(******************* Evaluating Predicates in TLA+ *******************)
+\*\* We can quantify over finite sets, though, such as BOOLEAN
+E26 == \A A, B \in BOOLEAN: (A => B) <=> (~A \/ B)
+\* TRUE
+
+E27 == \A A, B \in BOOLEAN: A <=> ~B
+\* FALSE
+
+E28 == \A A \in BOOLEAN: \E B \in BOOLEAN: A <=> ~B
+\* TRUE
+
+E29 == \E B \in BOOLEAN: ~(\A A \in BOOLEAN: A <=> ~B)
+\* TRUE
+
+\* We can use this to compare equations and check if two equations are substitutable.
+E30 == \A A, B \in BOOLEAN: ~(A /\ B) = ~A \/ ~B
+\* TRUE
 =============================================================================
 \* Modification History
-\* Last modified Wed Nov 13 21:56:39 GMT 2024 by frankeg
+\* Last modified Fri Nov 15 11:58:49 GMT 2024 by frankeg
 \* Created Tue Nov 12 21:43:58 GMT 2024 by frankeg
